@@ -260,28 +260,29 @@
                             </button>
                         </div>
                         <div class="relative">
-                            <input type="text" id="input-exercise" list="exercises-list" placeholder="e.g. Bench Press" autocomplete="off"
-                                class="input-field w-full p-3 rounded-xl text-lg font-medium placeholder-gray-600 pr-10" required>
-                            <button type="button" id="clear-exercise-btn" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-white hidden">
-                                <i class="fa-solid fa-times-circle text-xl"></i>
-                            </button>
+                            <select id="input-exercise" class="input-field w-full p-3 rounded-xl text-lg font-medium appearance-none pr-10" required>
+                                <option value="" disabled selected>Select Exercise</option>
+                                <!-- Options populated via JS -->
+                            </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
+                                <i class="fa-solid fa-chevron-down text-xs"></i>
+                            </div>
                         </div>
-                        <datalist id="exercises-list">
-                            <!-- Populated from Firestore -->
-                        </datalist>
                     </div>
 
                     <div class="grid grid-cols-3 gap-3">
                         <div class="col-span-1">
                             <label class="text-xs text-gray-500 uppercase font-bold ml-1 mb-1 block">Sets</label>
-                             <select id="input-set-count" class="input-field w-full p-3 rounded-xl text-lg font-bold text-center appearance-none">
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="5">5</option>
-                                <option value="6">6</option>
-                            </select>
+                            <div class="relative">
+                                <select id="input-set-count" class="input-field w-full p-3 rounded-xl text-lg font-bold text-center appearance-none">
+                                    <option value="1">1</option>
+                                    <option value="2">2</option>
+                                    <option value="3">3</option>
+                                    <option value="4">4</option>
+                                    <option value="5">5</option>
+                                    <option value="6">6</option>
+                                </select>
+                            </div>
                         </div>
                         <div class="col-span-1">
                             <label class="text-xs text-gray-500 uppercase font-bold ml-1 mb-1 block">kg/lbs</label>
@@ -290,8 +291,12 @@
                         </div>
                         <div class="col-span-1">
                             <label class="text-xs text-gray-500 uppercase font-bold ml-1 mb-1 block">Reps</label>
-                            <input type="number" id="input-reps" placeholder="0" 
-                                class="input-field w-full p-3 rounded-xl text-lg font-bold text-center" required>
+                            <div class="relative">
+                                <select id="input-reps" class="input-field w-full p-3 rounded-xl text-lg font-bold text-center appearance-none" required>
+                                    <option value="" disabled selected>0</option>
+                                    <!-- Options populated via JS -->
+                                </select>
+                            </div>
                         </div>
                     </div>
 
@@ -435,6 +440,15 @@
         let sessionsCache = {};
         let todayBWDocId = null;
 
+        // Populate Reps Dropdown on Init
+        const repSelect = document.getElementById('input-reps');
+        for(let i=1; i<=30; i++) {
+            const opt = document.createElement('option');
+            opt.value = i;
+            opt.textContent = i;
+            repSelect.appendChild(opt);
+        }
+
         // --- 2. AUTHENTICATION ---
         const authScreen = document.getElementById('auth-screen');
         const emailInput = document.getElementById('auth-email');
@@ -570,7 +584,7 @@
                 }
             }
             await setDoc(ref, { list: availableExercises }, { merge: true });
-            updateExerciseDatalist();
+            updateExerciseDropdown();
         }
 
         async function addExerciseToList(name) {
@@ -581,28 +595,40 @@
             if (!availableExercises.includes(name)) {
                 availableExercises.push(name);
                 availableExercises.sort();
-                updateExerciseDatalist();
+                updateExerciseDropdown();
                 const ref = getSettingsRef();
                 await setDoc(ref, { list: arrayUnion(name) }, { merge: true });
+                
+                // Auto-select new exercise
+                const dropdown = document.getElementById('input-exercise');
+                dropdown.value = name;
             }
         }
 
         async function removeExerciseFromList(name) {
             availableExercises = availableExercises.filter(e => e !== name);
-            updateExerciseDatalist();
+            updateExerciseDropdown();
             const ref = getSettingsRef();
             await updateDoc(ref, { list: arrayRemove(name) });
             renderManagerList();
         }
 
-        function updateExerciseDatalist() {
-            const datalist = document.getElementById('exercises-list');
-            datalist.innerHTML = '';
+        function updateExerciseDropdown() {
+            const dropdown = document.getElementById('input-exercise');
+            // Preserve selection if it still exists
+            const currentVal = dropdown.value;
+            
+            dropdown.innerHTML = '<option value="" disabled selected>Select Exercise</option>';
             availableExercises.forEach(ex => {
                 const opt = document.createElement('option');
                 opt.value = ex;
-                datalist.appendChild(opt);
+                opt.textContent = ex;
+                dropdown.appendChild(opt);
             });
+            
+            if(availableExercises.includes(currentVal)) {
+                dropdown.value = currentVal;
+            }
         }
 
         // Modal Logic
@@ -641,6 +667,7 @@
                 addExerciseToList(input.value);
                 input.value = '';
                 renderManagerList();
+                modal.classList.add('hidden'); // Close modal after adding
             }
         });
 
@@ -666,32 +693,16 @@
         setupDecimalRestriction('input-weight');
         setupDecimalRestriction('input-bodyweight');
 
-        const exerciseInput = document.getElementById('input-exercise');
-        const clearExBtn = document.getElementById('clear-exercise-btn');
-
-        function toggleClearBtn() {
-            if (exerciseInput.value) {
-                clearExBtn.classList.remove('hidden');
-            } else {
-                clearExBtn.classList.add('hidden');
-            }
-        }
-
-        exerciseInput.addEventListener('input', toggleClearBtn);
-        exerciseInput.addEventListener('change', toggleClearBtn);
-
-        clearExBtn.addEventListener('click', () => {
-            exerciseInput.value = '';
-            toggleClearBtn();
-            exerciseInput.focus();
-        });
-
         const getWorkoutsRef = () => collection(db, 'users', currentUser.uid, 'workouts');
 
         const logWorkout = async (exercise, weight, reps, numSets) => {
             if (!currentUser) return;
+            if (!exercise) {
+                showToast("Please select an exercise", true);
+                return;
+            }
             try {
-                await addExerciseToList(exercise);
+                // Exercise selection handled via dropdown, no auto-add needed
                 const ref = getWorkoutsRef();
                 const formattedWeight = parseFloat(parseFloat(weight).toFixed(1));
                 document.getElementById('input-weight').value = formattedWeight.toFixed(1);
@@ -716,9 +727,8 @@
                 showToast(`Logged: ${exercise} (${setMsg} x ${reps})${dateMsg}`);
                 
                 document.getElementById('input-set-count').value = "1";
-                document.getElementById('input-reps').value = '';
-                exerciseInput.value = ''; 
-                toggleClearBtn();
+                document.getElementById('input-reps').value = ""; // Reset to default
+                document.getElementById('input-exercise').value = ""; // Reset dropdown
             } catch (e) {
                 console.error("Error adding document: ", e);
                 showToast("Error saving workout", true);
