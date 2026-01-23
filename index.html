@@ -140,12 +140,17 @@
             filter: invert(1);
             cursor: pointer;
         }
+
+        /* Safe Area Padding for Footer */
+        .pb-safe {
+            padding-bottom: env(safe-area-inset-bottom, 20px);
+        }
     </style>
 </head>
-<body class="h-screen flex flex-col overflow-hidden">
+<body class="bg-[var(--bg-deep)] text-[var(--text-main)] min-h-screen">
 
-    <!-- APP HEADER -->
-    <header class="flex-none p-4 flex justify-between items-center bg-[#0a0a0a] border-b border-[#222]">
+    <!-- APP HEADER (Fixed) -->
+    <header class="fixed top-0 left-0 right-0 z-50 h-16 flex justify-between items-center px-4 bg-[#0a0a0a] border-b border-[#222] shadow-md">
         <div class="flex items-center gap-2">
             <i class="fa-solid fa-dumbbell text-2xl" style="color: var(--accent)"></i>
             <h1 class="text-xl font-bold tracking-tight">REP<span class="font-light">TRACK</span></h1>
@@ -158,8 +163,8 @@
         </div>
     </header>
 
-    <!-- AUTH SCREEN (Overlay) -->
-    <div id="auth-screen" class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black bg-opacity-95 p-6 transition-opacity duration-300">
+    <!-- AUTH SCREEN (Fixed Overlay) -->
+    <div id="auth-screen" class="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-black bg-opacity-95 p-6 transition-opacity duration-300">
         <div class="text-center mb-8">
             <i class="fa-solid fa-bolt text-6xl mb-4" style="color: var(--accent)"></i>
             <h2 class="text-3xl font-bold mb-2">Welcome Back</h2>
@@ -188,8 +193,8 @@
         <p class="mt-6 text-xs text-gray-600">Powered by Firebase</p>
     </div>
     
-    <!-- EXERCISE MANAGER MODAL -->
-    <div id="exercise-modal" class="absolute inset-0 z-40 hidden flex items-center justify-center modal-bg p-4 animate-fade-in">
+    <!-- EXERCISE MANAGER MODAL (Fixed Overlay) -->
+    <div id="exercise-modal" class="fixed inset-0 z-[60] hidden flex items-center justify-center modal-bg p-4 animate-fade-in">
         <div class="card w-full max-w-sm rounded-2xl p-6 relative">
             <button id="close-modal-btn" class="absolute top-4 right-4 text-gray-400 hover:text-white">
                 <i class="fa-solid fa-times text-xl"></i>
@@ -209,13 +214,14 @@
     </div>
 
     <!-- MAIN CONTENT AREA -->
-    <main class="flex-1 overflow-y-auto relative p-4 pb-24">
+    <!-- Added pt-20 to clear header, pb-32 to clear footer -->
+    <main class="relative w-full pt-20 pb-32 px-4">
         
         <!-- VIEW: LOGGER -->
         <div id="view-log" class="view-section space-y-6 max-w-md mx-auto">
             
             <!-- GLOBAL DATE PICKER -->
-            <div class="flex justify-end mt-6">
+            <div class="flex justify-end mt-2">
                 <div class="flex items-center gap-2 bg-[#121212] border border-[#2a2a2a] rounded-lg px-3 py-2 shadow-sm">
                     <span class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Log Date</span>
                     <input type="date" id="input-date" class="bg-transparent text-gray-300 text-xs font-bold focus:outline-none focus:text-[#00E676] uppercase">
@@ -243,7 +249,6 @@
                     <h2 class="text-lg font-semibold flex items-center gap-2">
                         <i class="fa-solid fa-plus-circle text-gray-400"></i> New Set
                     </h2>
-                    <!-- Date Picker moved to top of view -->
                 </div>
                 
                 <form id="log-form" class="space-y-4">
@@ -373,8 +378,8 @@
 
     </main>
 
-    <!-- BOTTOM NAVIGATION (Mobile First) -->
-    <nav class="flex-none bg-[#0a0a0a] border-t border-[#222] pb-safe">
+    <!-- BOTTOM NAVIGATION (Fixed) -->
+    <nav class="fixed bottom-0 left-0 right-0 z-50 bg-[#0a0a0a] border-t border-[#222] pb-safe">
         <div class="flex justify-around items-center h-16 max-w-md mx-auto">
             <button class="nav-link active flex flex-col items-center justify-center w-full h-full gap-1" data-target="view-log">
                 <i class="fa-solid fa-pen-to-square text-xl"></i>
