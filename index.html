@@ -159,13 +159,26 @@
             <h2 class="text-3xl font-bold mb-2">Welcome Back</h2>
             <p class="text-gray-400">Track every rep. Visualize every gain.</p>
         </div>
-        <div id="auth-loading" class="hidden">
+        
+        <!-- Email/Password Auth Form -->
+        <div class="w-full max-w-xs space-y-4">
+            <input type="email" id="auth-email" placeholder="Email" class="input-field w-full p-3 rounded-xl text-lg">
+            <input type="password" id="auth-password" placeholder="Password" class="input-field w-full p-3 rounded-xl text-lg">
+            
+            <div id="auth-error" class="text-red-500 text-sm text-center hidden"></div>
+
+            <button id="login-btn" class="btn-primary w-full p-3 rounded-xl flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(0,230,118,0.3)]">
+                <span>Login</span>
+            </button>
+            <button id="register-btn" class="w-full p-3 rounded-xl bg-[#222] text-gray-300 hover:bg-[#333] hover:text-white border border-[#333] transition flex items-center justify-center gap-2">
+                <span>Create Account</span>
+            </button>
+        </div>
+
+        <div id="auth-loading" class="hidden mt-4">
             <div class="loading-spinner w-12 h-12"></div>
         </div>
-        <button id="login-btn" class="btn-primary px-8 py-4 rounded-full w-full max-w-xs flex items-center justify-center gap-3 shadow-[0_0_20px_rgba(0,230,118,0.3)]">
-            <i class="fa-brands fa-google"></i>
-            <span>Sign in with Google</span>
-        </button>
+        
         <p class="mt-6 text-xs text-gray-600">Powered by Firebase</p>
     </div>
     
@@ -289,9 +302,7 @@
         <div id="view-history" class="view-section hidden max-w-md mx-auto">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-2xl font-bold">History</h2>
-                <button id="demo-data-btn" class="text-xs bg-[#222] hover:bg-[#333] px-3 py-1 rounded text-[#00E676] border border-[#333] transition-colors">
-                    <i class="fa-solid fa-database mr-1"></i> Demo Data
-                </button>
+                <!-- Demo Button Removed -->
             </div>
             <div id="history-list" class="space-y-3 pb-4">
                 <div class="flex justify-center py-10"><div class="loading-spinner"></div></div>
@@ -367,7 +378,8 @@
     <!-- FIREBASE & APP LOGIC -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        // Switched from Google Auth to Email/Password Auth imports
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, query, orderBy, limit, onSnapshot, serverTimestamp, setDoc, doc, getDoc, updateDoc, arrayUnion, arrayRemove, getDocs, where, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- 1. CONFIGURATION ---
@@ -404,32 +416,101 @@
 
         // --- 2. AUTHENTICATION ---
         const authScreen = document.getElementById('auth-screen');
+        const emailInput = document.getElementById('auth-email');
+        const passwordInput = document.getElementById('auth-password');
         const loginBtn = document.getElementById('login-btn');
+        const registerBtn = document.getElementById('register-btn');
         const authLoading = document.getElementById('auth-loading');
         const logoutBtn = document.getElementById('logout-btn');
+        const authError = document.getElementById('auth-error');
 
-        const initAuth = async () => {
-            const provider = new GoogleAuthProvider();
-            try {
-                await signInWithPopup(auth, provider);
-            } catch (error) {
-                 console.error("Auth failed:", error);
-                 alert("Login failed. Check console for details.");
+        // Helper to show auth errors
+        function showAuthError(msg) {
+            authError.textContent = msg;
+            authError.classList.remove('hidden');
+        }
+
+        // Helper to toggle loading state
+        function toggleAuthLoading(isLoading) {
+            if(isLoading) {
+                authLoading.classList.remove('hidden');
+                loginBtn.disabled = true;
+                registerBtn.disabled = true;
+                authError.classList.add('hidden');
+            } else {
+                authLoading.classList.add('hidden');
+                loginBtn.disabled = false;
+                registerBtn.disabled = false;
             }
-        };
+        }
 
+        // Login Handler
         loginBtn.addEventListener('click', async () => {
-            loginBtn.classList.add('hidden');
-            authLoading.classList.remove('hidden');
-            await initAuth();
+            const email = emailInput.value;
+            const password = passwordInput.value;
+            
+            if(!email || !password) {
+                showAuthError("Please enter email and password");
+                return;
+            }
+            
+            toggleAuthLoading(true);
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+            } catch (error) {
+                console.error("Login failed:", error);
+                let msg = "Login failed. Check your credentials.";
+                if(error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                    msg = "Invalid email or password.";
+                }
+                showAuthError(msg);
+                toggleAuthLoading(false);
+            }
         });
 
+        // Register Handler
+        registerBtn.addEventListener('click', async () => {
+            const email = emailInput.value;
+            const password = passwordInput.value;
+            
+            if(!email || !password) {
+                showAuthError("Please enter email and password");
+                return;
+            }
+            
+            if(password.length < 6) {
+                showAuthError("Password must be at least 6 characters");
+                return;
+            }
+            
+            toggleAuthLoading(true);
+            try {
+                await createUserWithEmailAndPassword(auth, email, password);
+            } catch (error) {
+                console.error("Registration failed:", error);
+                let msg = "Registration failed.";
+                if(error.code === 'auth/email-already-in-use') {
+                    msg = "Email already in use.";
+                } else if (error.code === 'auth/invalid-email') {
+                    msg = "Invalid email format.";
+                }
+                showAuthError(msg);
+                toggleAuthLoading(false);
+            }
+        });
+
+        // Auth State Listener
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 currentUser = user;
                 authScreen.classList.add('opacity-0', 'pointer-events-none');
                 document.getElementById('user-email').textContent = user.email;
                 document.getElementById('user-info').classList.remove('hidden');
+                
+                // Clear form
+                emailInput.value = '';
+                passwordInput.value = '';
+                toggleAuthLoading(false);
                 
                 setupRealtimeListeners();
                 fetchUserExercises();
@@ -438,8 +519,7 @@
                 currentUser = null;
                 authScreen.classList.remove('opacity-0', 'pointer-events-none');
                 document.getElementById('user-info').classList.add('hidden');
-                loginBtn.classList.remove('hidden');
-                authLoading.classList.add('hidden');
+                toggleAuthLoading(false);
                 
                 unsubscribes.forEach(unsub => unsub());
                 unsubscribes = [];
@@ -612,89 +692,7 @@
             }
         };
 
-        // --- DEMO DATA GENERATOR ---
-        const demoDataBtn = document.getElementById('demo-data-btn');
-        if(demoDataBtn) {
-            demoDataBtn.addEventListener('click', async () => {
-                if(!currentUser) {
-                    showToast("Not logged in yet. Please wait.", true);
-                    return;
-                }
-
-                const originalText = demoDataBtn.innerHTML;
-                demoDataBtn.disabled = true;
-                demoDataBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating...';
-                showToast("Generating history for all exercises...");
-
-                const baseWeights = {
-                    "Bench Press": 60, "Omni Row": 50, "Incline DB Press": 22, "Lateral Raises": 8, 
-                    "Tricep Pushdowns": 25, "Hack Squat": 90, "Romanian Deadlift": 80, 
-                    "Bulgarian Split Squat": 16, "Standing Calf Raises": 40, "Overhead Press": 40, 
-                    "Heavy Pulldowns": 50, "Face Pulls": 15, "Hammer Curls": 12, "EZ Bar Curls": 25, 
-                    "Trap Bar Deadlift": 110, "Leg Press": 140, "Leg Extensions": 40, "Leg Curl": 40
-                };
-                const exercises = Object.keys(baseWeights);
-
-                let currentBodyWeight = 85.0;
-                const promises = [];
-                
-                for (let i = 90; i >= 0; i--) {
-                    const date = new Date();
-                    date.setDate(date.getDate() - i);
-                    const dateString = date.toLocaleDateString();
-                    
-                    if(Math.random() > 0.7) {
-                        const dailyExercises = exercises.sort(() => 0.5 - Math.random()).slice(0, Math.floor(Math.random() * 4) + 2);
-                        
-                        for(const ex of dailyExercises) {
-                            const progress = (90 - i) * 0.15;
-                            const variance = (Math.random() * 5) - 2.5;
-                            let weight = baseWeights[ex] + progress + variance;
-                            if (weight < 5) weight = 5;
-                            weight = Math.round(weight * 2) / 2;
-
-                            const docData = {
-                                exercise: ex,
-                                weight: weight,
-                                reps: Math.floor(Math.random() * 4) + 6,
-                                setCount: 3,
-                                timestamp: date,
-                                dateStr: dateString
-                            };
-                            
-                            const ref = collection(db, 'users', currentUser.uid, 'workouts');
-                            promises.push(addDoc(ref, docData));
-                        }
-                    }
-
-                    const hasWeightForDay = bodyweightCache.some(bw => bw.dateStr === dateString);
-                    if (!hasWeightForDay && Math.random() > 0.75) {
-                        const change = (Math.random() * 0.6) - 0.35;
-                        currentBodyWeight += change;
-                        
-                        const bwData = {
-                            weight: parseFloat(currentBodyWeight.toFixed(1)),
-                            timestamp: date,
-                            dateStr: dateString
-                        };
-                        const bwRef = collection(db, 'users', currentUser.uid, 'bodyweight');
-                        promises.push(addDoc(bwRef, bwData));
-                    }
-                }
-                
-                try {
-                    await Promise.all(promises);
-                    showToast("Demo data generated for all exercises!");
-                    if(typeof fetchBodyWeightStatus === 'function') fetchBodyWeightStatus();
-                } catch(e) {
-                    console.error(e);
-                    showToast("Error generating data", true);
-                } finally {
-                    demoDataBtn.disabled = false;
-                    demoDataBtn.innerHTML = originalText;
-                }
-            });
-        }
+        // --- DEMO DATA GENERATOR REMOVED ---
 
         // --- 5. BODY WEIGHT LOGGING ---
         const btnSaveBW = document.getElementById('btn-save-bw');
