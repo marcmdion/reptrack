@@ -428,12 +428,16 @@
         let currentUser = null;
         let unsubscribes = [];
         let chartInstance = null;
-        let availableExercises = [
+        
+        // Defined order of defaults
+        const orderedDefaults = [
             "Bench Press", "Omni Row", "Incline DB Press", "Lateral Raises", "Tricep Pushdowns",
             "Hack Squat", "Romanian Deadlift", "Bulgarian Split Squat", "Standing Calf Raises",
             "Overhead Press", "Heavy Pulldowns", "Face Pulls", "Hammer Curls", "EZ Bar Curls",
             "Trap Bar Deadlift", "Leg Press", "Leg Extensions", "Leg Curl"
         ];
+        // Initialize availableExercises with defaults
+        let availableExercises = [...orderedDefaults];
         
         let workoutsCache = [];
         let bodyweightCache = [];
@@ -576,14 +580,23 @@
             const ref = getSettingsRef();
             const snap = await getDoc(ref);
             
+            let customExercises = [];
+
             if (snap.exists()) {
                 const data = snap.data();
                 if(data.list && data.list.length > 0) {
-                    const combined = [...availableExercises, ...data.list];
-                    availableExercises = [...new Set(combined)].sort();
+                    // Find exercises in user list that are NOT in orderedDefaults
+                    customExercises = data.list.filter(ex => !orderedDefaults.includes(ex));
+                    customExercises.sort(); // Sort only the custom ones alphabetically
                 }
             }
+            
+            // Reconstruct list: Defaults (Ordered) + Custom (Sorted)
+            availableExercises = [...orderedDefaults, ...customExercises];
+            
+            // Sync merged list back to Firestore
             await setDoc(ref, { list: availableExercises }, { merge: true });
+            
             updateExerciseDropdown();
         }
 
@@ -594,7 +607,7 @@
 
             if (!availableExercises.includes(name)) {
                 availableExercises.push(name);
-                availableExercises.sort();
+                // Do NOT sort entire list here, just update
                 updateExerciseDropdown();
                 const ref = getSettingsRef();
                 await setDoc(ref, { list: arrayUnion(name) }, { merge: true });
@@ -1171,6 +1184,8 @@
                     plugins: { 
                         legend: { 
                             display: true,
+                            position: 'bottom', // Legend moved to bottom
+                            align: 'start',
                             labels: {
                                 color: '#A0A0A0',
                                 font: { size: 10 },
