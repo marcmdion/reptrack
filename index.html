@@ -214,11 +214,19 @@
         <!-- VIEW: LOGGER -->
         <div id="view-log" class="view-section space-y-6 max-w-md mx-auto">
             
+            <!-- GLOBAL DATE PICKER -->
+            <div class="flex justify-end">
+                <div class="flex items-center gap-2 bg-[#121212] border border-[#2a2a2a] rounded-lg px-3 py-2 shadow-sm">
+                    <span class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Log Date</span>
+                    <input type="date" id="input-date" class="bg-transparent text-gray-300 text-xs font-bold focus:outline-none focus:text-[#00E676] uppercase">
+                </div>
+            </div>
+
             <!-- Body Weight Tracker -->
             <div class="card p-4 rounded-xl flex items-center justify-between animate-fade-in border-l-4 border-l-[#00E676]">
                 <div>
-                    <h2 class="text-xs text-gray-500 uppercase font-bold">Daily Body Weight</h2>
-                    <div class="text-gray-400 text-xs mt-1" id="last-bw-display">Log today's weight</div>
+                    <h2 class="text-xs text-gray-500 uppercase font-bold">Body Weight</h2>
+                    <div class="text-gray-400 text-xs mt-1" id="last-bw-display">Log weight</div>
                 </div>
                 <div class="flex items-center gap-2">
                     <input type="number" id="input-bodyweight" placeholder="0.0" step="0.1" min="0" 
@@ -235,8 +243,7 @@
                     <h2 class="text-lg font-semibold flex items-center gap-2">
                         <i class="fa-solid fa-plus-circle text-gray-400"></i> New Set
                     </h2>
-                    <!-- Date Picker for Retrospective Logging -->
-                    <input type="date" id="input-date" class="bg-[#1E1E1E] text-gray-400 text-xs border border-[#333] rounded px-2 py-1 focus:outline-none focus:border-[#00E676]">
+                    <!-- Date Picker moved to top of view -->
                 </div>
                 
                 <form id="log-form" class="space-y-4">
@@ -716,37 +723,54 @@
         // --- 5. BODY WEIGHT LOGGING ---
         const btnSaveBW = document.getElementById('btn-save-bw');
         const inputBW = document.getElementById('input-bodyweight');
+        const dateInput = document.getElementById('input-date');
+
+        // Refresh status when date changes
+        dateInput.addEventListener('change', fetchBodyWeightStatus);
 
         async function fetchBodyWeightStatus() {
             if (!currentUser) return;
             
             const display = document.getElementById('last-bw-display');
             const icon = btnSaveBW.querySelector('i');
+            
+            // Get selected date
+            const [y, m, d] = dateInput.value.split('-').map(Number);
+            const selectedDateStr = new Date(y, m - 1, d).toLocaleDateString();
             const todayStr = new Date().toLocaleDateString();
+            const isToday = selectedDateStr === todayStr;
+            const dateLabel = isToday ? "Today" : selectedDateStr;
 
             try {
                 const ref = collection(db, 'users', currentUser.uid, 'bodyweight');
-                const qToday = query(ref, where("dateStr", "==", todayStr), limit(1));
-                const snapToday = await getDocs(qToday);
+                // Check if entry exists for SELECTED date
+                const qTarget = query(ref, where("dateStr", "==", selectedDateStr), limit(1));
+                const snapTarget = await getDocs(qTarget);
 
-                if (!snapToday.empty) {
-                    const d = snapToday.docs[0];
-                    todayBWDocId = d.id;
+                if (!snapTarget.empty) {
+                    // Edit Mode
+                    const d = snapTarget.docs[0];
+                    todayBWDocId = d.id; // Using global variable to store current edit ID
                     inputBW.value = d.data().weight;
-                    display.textContent = `Current: ${d.data().weight}kg (Today)`;
+                    display.textContent = `Recorded: ${d.data().weight}kg (${dateLabel})`;
                     inputBW.disabled = true;
                     icon.className = "fa-solid fa-pen-to-square text-white";
                 } else {
+                    // New Mode
                     todayBWDocId = null;
                     inputBW.disabled = false;
                     icon.className = "fa-solid fa-save text-[#00E676]";
 
+                    // Fetch last known weight for context
                     const qLast = query(ref, orderBy("timestamp", "desc"), limit(1));
                     const snapLast = await getDocs(qLast);
                     if (!snapLast.empty) {
                         const data = snapLast.docs[0].data();
                         inputBW.value = data.weight;
                         display.textContent = `Last: ${data.weight}kg (${data.dateStr || 'Prev'})`;
+                    } else {
+                        display.textContent = `Log weight for ${dateLabel}`;
+                        inputBW.value = '';
                     }
                 }
             } catch (e) {
@@ -768,23 +792,30 @@
             if (!weight || !currentUser) return;
             weight = parseFloat(weight.toFixed(1));
 
+            // Date Handling
+            const [y, m, d] = dateInput.value.split('-').map(Number);
+            const logDate = new Date(y, m - 1, d, 12, 0, 0);
+            const logDateStr = logDate.toLocaleDateString();
+
             try {
                 const collectionRef = collection(db, 'users', currentUser.uid, 'bodyweight');
                 if (todayBWDocId) {
                     const docRef = doc(db, 'users', currentUser.uid, 'bodyweight', todayBWDocId);
-                    await updateDoc(docRef, { weight: weight });
+                    await updateDoc(docRef, { weight: weight }); // Update existing
                     showToast(`Updated: ${weight}kg`);
                 } else {
                     const docRef = await addDoc(collectionRef, {
                         weight: weight,
-                        timestamp: serverTimestamp(),
-                        dateStr: new Date().toLocaleDateString()
+                        timestamp: logDate,
+                        dateStr: logDateStr
                     });
                     todayBWDocId = docRef.id;
-                    showToast(`Logged: ${weight}kg`);
+                    showToast(`Logged: ${weight}kg for ${logDateStr}`);
                 }
                 
-                document.getElementById('last-bw-display').textContent = `Current: ${weight}kg (Today)`;
+                const todayStr = new Date().toLocaleDateString();
+                const label = logDateStr === todayStr ? "Today" : logDateStr;
+                document.getElementById('last-bw-display').textContent = `Recorded: ${weight}kg (${label})`;
                 inputBW.disabled = true;
                 icon.className = "fa-solid fa-pen-to-square text-white";
             } catch(e) {
