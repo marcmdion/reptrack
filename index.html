@@ -134,6 +134,12 @@
             background-color: rgba(0,0,0,0.8);
             backdrop-filter: blur(4px);
         }
+        
+        /* Date Input Styling */
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            cursor: pointer;
+        }
     </style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden">
@@ -225,9 +231,13 @@
 
             <!-- Quick Log Form -->
             <div class="card p-6 rounded-2xl animate-fade-in">
-                <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <i class="fa-solid fa-plus-circle text-gray-400"></i> New Set
-                </h2>
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-semibold flex items-center gap-2">
+                        <i class="fa-solid fa-plus-circle text-gray-400"></i> New Set
+                    </h2>
+                    <!-- Date Picker for Retrospective Logging -->
+                    <input type="date" id="input-date" class="bg-[#1E1E1E] text-gray-400 text-xs border border-[#333] rounded px-2 py-1 focus:outline-none focus:border-[#00E676]">
+                </div>
                 
                 <form id="log-form" class="space-y-4">
                     <div>
@@ -302,7 +312,6 @@
         <div id="view-history" class="view-section hidden max-w-md mx-auto">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-2xl font-bold">History</h2>
-                <!-- Demo Button Removed -->
             </div>
             <div id="history-list" class="space-y-3 pb-4">
                 <div class="flex justify-center py-10"><div class="loading-spinner"></div></div>
@@ -512,6 +521,11 @@
                 passwordInput.value = '';
                 toggleAuthLoading(false);
                 
+                // Initialize date picker to today
+                const now = new Date();
+                const localDate = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+                document.getElementById('input-date').value = localDate;
+
                 setupRealtimeListeners();
                 fetchUserExercises();
                 fetchBodyWeightStatus();
@@ -670,17 +684,24 @@
                 const formattedWeight = parseFloat(parseFloat(weight).toFixed(1));
                 document.getElementById('input-weight').value = formattedWeight.toFixed(1);
 
+                // Date Handling
+                const dateInput = document.getElementById('input-date');
+                // Create date object from input (treat as local time)
+                const [y, m, d] = dateInput.value.split('-').map(Number);
+                const logDate = new Date(y, m - 1, d, 12, 0, 0); // Noon to match local day safely
+
                 await addDoc(ref, {
                     exercise: exercise,
                     weight: formattedWeight,
                     reps: parseInt(reps),
                     setCount: parseInt(numSets),
-                    timestamp: serverTimestamp(),
-                    dateStr: new Date().toLocaleDateString()
+                    timestamp: logDate, // Firestore handles JS Date conversion
+                    dateStr: logDate.toLocaleDateString()
                 });
 
                 const setMsg = numSets > 1 ? `${numSets} Sets` : `Set`;
-                showToast(`Logged: ${exercise} (${setMsg} x ${reps})`);
+                const dateMsg = dateInput.value === new Date().toISOString().split('T')[0] ? "" : ` on ${logDate.toLocaleDateString()}`;
+                showToast(`Logged: ${exercise} (${setMsg} x ${reps})${dateMsg}`);
                 
                 document.getElementById('input-set-count').value = "1";
                 document.getElementById('input-reps').value = '';
@@ -691,8 +712,6 @@
                 showToast("Error saving workout", true);
             }
         };
-
-        // --- DEMO DATA GENERATOR REMOVED ---
 
         // --- 5. BODY WEIGHT LOGGING ---
         const btnSaveBW = document.getElementById('btn-save-bw');
