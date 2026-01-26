@@ -190,7 +190,7 @@
             <div class="loading-spinner w-12 h-12"></div>
         </div>
         
-        <p class="mt-6 text-xs text-gray-600">Powered by Firebase</p>
+        <p class="mt-6 text-xs text-gray-600">Powered by Marc Dion</p>
     </div>
     
     <!-- EXERCISE MANAGER MODAL (Fixed Overlay) -->
@@ -267,6 +267,8 @@
                                 <i class="fa-solid fa-chevron-down text-xs"></i>
                             </div>
                         </div>
+                        <!-- 1RM Advice Text -->
+                        <div id="log-advice-1rm" class="text-[10px] text-[#00E676] mt-1 ml-1 h-3 font-mono font-bold"></div>
                     </div>
 
                     <div class="grid grid-cols-3 gap-3">
@@ -688,13 +690,13 @@
 
         // --- 4. WORKOUT LOGGING ---
         
-        // AUTO-FILL LISTENER
+        // AUTO-FILL & 1RM LISTENER
         const exerciseDropdown = document.getElementById('input-exercise');
         exerciseDropdown.addEventListener('change', (e) => {
             const selectedExercise = e.target.value;
             if (!selectedExercise) return;
             
-            // Look into history to find the LAST time this exercise was done
+            // 1. Auto-fill Last Session Values
             const lastLog = workoutsCache.find(w => w.exercise === selectedExercise);
             
             if (lastLog) {
@@ -702,10 +704,24 @@
                 document.getElementById('input-weight').value = lastLog.weight;
                 document.getElementById('input-reps').value = lastLog.reps;
             } else {
-                // Reset if it's a "fresh" exercise for the user
                 document.getElementById('input-set-count').value = 1;
                 document.getElementById('input-weight').value = '';
                 document.getElementById('input-reps').value = '';
+            }
+
+            // 2. Calculate and Display Best 1RM
+            const exWorkouts = workoutsCache.filter(w => w.exercise === selectedExercise);
+            let best1RM = 0;
+            exWorkouts.forEach(w => {
+                 const est = w.weight * (1 + (w.reps / 30));
+                 if(est > best1RM) best1RM = est;
+            });
+            
+            const adviceEl = document.getElementById('log-advice-1rm');
+            if (best1RM > 0) {
+                adviceEl.textContent = `~1RM = ${Math.round(best1RM)} kg`;
+            } else {
+                adviceEl.textContent = '';
             }
         });
 
@@ -766,6 +782,7 @@
                 document.getElementById('input-set-count').value = "1";
                 document.getElementById('input-reps').value = ""; // Reset to default
                 document.getElementById('input-exercise').value = ""; // Reset dropdown
+                document.getElementById('log-advice-1rm').textContent = ""; // Clear advice
             } catch (e) {
                 console.error("Error adding document: ", e);
                 showToast("Error saving workout", true);
