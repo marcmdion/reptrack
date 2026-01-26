@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>MD RepTrack - Minimalist Workout Log</title>
+    <title>RepTrack - Minimalist Workout Log</title>
     
     <!-- Tailwind CSS for Layouts -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -190,7 +190,7 @@
             <div class="loading-spinner w-12 h-12"></div>
         </div>
         
-        <p class="mt-6 text-xs text-gray-600">Powered by Marc Dion</p>
+        <p class="mt-6 text-xs text-gray-600">Powered by Firebase</p>
     </div>
     
     <!-- EXERCISE MANAGER MODAL (Fixed Overlay) -->
@@ -214,7 +214,6 @@
     </div>
 
     <!-- MAIN CONTENT AREA -->
-    <!-- Added pt-20 to clear header, pb-32 to clear footer -->
     <main class="relative w-full pt-20 pb-32 px-4">
         
         <!-- VIEW: LOGGER -->
@@ -615,6 +614,9 @@
                 // Auto-select new exercise
                 const dropdown = document.getElementById('input-exercise');
                 dropdown.value = name;
+                
+                // Trigger auto-fill logic for new exercise (likely defaults)
+                dropdown.dispatchEvent(new Event('change'));
             }
         }
 
@@ -685,6 +687,28 @@
         });
 
         // --- 4. WORKOUT LOGGING ---
+        
+        // AUTO-FILL LISTENER
+        const exerciseDropdown = document.getElementById('input-exercise');
+        exerciseDropdown.addEventListener('change', (e) => {
+            const selectedExercise = e.target.value;
+            if (!selectedExercise) return;
+            
+            // Look into history to find the LAST time this exercise was done
+            const lastLog = workoutsCache.find(w => w.exercise === selectedExercise);
+            
+            if (lastLog) {
+                document.getElementById('input-set-count').value = lastLog.setCount || 1;
+                document.getElementById('input-weight').value = lastLog.weight;
+                document.getElementById('input-reps').value = lastLog.reps;
+            } else {
+                // Reset if it's a "fresh" exercise for the user
+                document.getElementById('input-set-count').value = 1;
+                document.getElementById('input-weight').value = '';
+                document.getElementById('input-reps').value = '';
+            }
+        });
+
         function setupDecimalRestriction(inputId) {
             const el = document.getElementById(inputId);
             el.addEventListener('input', (e) => {
@@ -859,7 +883,8 @@
             unsubscribes = [];
 
             const workoutsRef = collection(db, 'users', currentUser.uid, 'workouts');
-            const qWorkouts = query(workoutsRef, orderBy("timestamp", "desc"), limit(50));
+            // Increased limit to 100 to better support auto-fill
+            const qWorkouts = query(workoutsRef, orderBy("timestamp", "desc"), limit(100));
             const unsubWorkouts = onSnapshot(qWorkouts, (snapshot) => {
                 workoutsCache = snapshot.docs.map(doc => ({ 
                     id: doc.id, 
@@ -1394,4 +1419,3 @@
     </script>
 </body>
 </html>
-
