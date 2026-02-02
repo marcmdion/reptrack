@@ -214,6 +214,7 @@
     </div>
 
     <!-- MAIN CONTENT AREA -->
+    <!-- Added pt-20 to clear header, pb-32 to clear footer -->
     <main class="relative w-full pt-20 pb-32 px-4">
         
         <!-- VIEW: LOGGER -->
@@ -269,6 +270,8 @@
                         </div>
                         <!-- 1RM Advice Text -->
                         <div id="log-advice-1rm" class="text-[10px] text-[#00E676] mt-1 ml-1 h-3 font-mono font-bold"></div>
+                        <!-- Recent History -->
+                        <div id="log-recent-history" class="mt-2 space-y-1"></div>
                     </div>
 
                     <div class="grid grid-cols-3 gap-3">
@@ -723,6 +726,30 @@
             } else {
                 adviceEl.textContent = '';
             }
+
+            // 3. Display Recent History
+            const recentHistoryEl = document.getElementById('log-recent-history');
+            recentHistoryEl.innerHTML = ''; 
+
+            const historyItems = exWorkouts.slice(0, 3); 
+
+            historyItems.forEach(item => {
+                const dateObj = item.timestamp ? item.timestamp.toDate() : new Date();
+                const yyyy = dateObj.getFullYear();
+                const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+                const dd = String(dateObj.getDate()).padStart(2, '0');
+                const dateFmt = `${yyyy}-${mm}-${dd}`;
+                
+                const sets = item.setCount || 1;
+                const weight = item.weight;
+                const reps = item.reps;
+
+                const line = document.createElement('div');
+                line.className = "text-[10px] text-gray-500 font-mono";
+                line.textContent = `(${dateFmt}) ${sets} - ${weight} x ${reps}`; 
+                
+                recentHistoryEl.appendChild(line);
+            });
         });
 
         function setupDecimalRestriction(inputId) {
@@ -783,6 +810,7 @@
                 document.getElementById('input-reps').value = ""; // Reset to default
                 document.getElementById('input-exercise').value = ""; // Reset dropdown
                 document.getElementById('log-advice-1rm').textContent = ""; // Clear advice
+                document.getElementById('log-recent-history').innerHTML = ""; // Clear recent history
             } catch (e) {
                 console.error("Error adding document: ", e);
                 showToast("Error saving workout", true);
