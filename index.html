@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>MD RepTrack - Minimalist Workout Log</title>
+    <title>RepTrack - Minimalist Workout Log</title>
     
     <!-- Tailwind CSS for Layouts -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -190,7 +190,7 @@
             <div class="loading-spinner w-12 h-12"></div>
         </div>
         
-        <p class="mt-6 text-xs text-gray-600">Powered by Marc Dion</p>
+        <p class="mt-6 text-xs text-gray-600">Powered by Firebase</p>
     </div>
     
     <!-- EXERCISE MANAGER MODAL (Fixed Overlay) -->
@@ -225,6 +225,22 @@
                 <div class="flex items-center gap-2 bg-[#121212] border border-[#2a2a2a] rounded-lg px-3 py-2 shadow-sm">
                     <span class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Log Date</span>
                     <input type="date" id="input-date" class="bg-transparent text-gray-300 text-xs font-bold focus:outline-none focus:text-[#00E676] uppercase">
+                </div>
+            </div>
+
+            <!-- Rest Timer -->
+            <div class="card p-4 rounded-xl flex flex-col gap-3 animate-fade-in border-l-4 border-l-blue-500">
+                <div class="flex justify-between items-center w-full">
+                    <h2 class="text-xs text-gray-500 uppercase font-bold"><i class="fa-solid fa-stopwatch mr-1"></i> Rest Timer</h2>
+                    <div id="timer-display" class="text-2xl font-bold font-mono text-gray-300 transition-colors duration-300">00:00</div>
+                </div>
+                <div class="flex justify-between gap-1 sm:gap-2">
+                    <button type="button" class="timer-btn flex-1 bg-[#1E1E1E] hover:bg-[#333] text-gray-300 text-xs py-2 rounded-lg border border-[#333] transition-colors font-semibold" data-time="30">30s</button>
+                    <button type="button" class="timer-btn flex-1 bg-[#1E1E1E] hover:bg-[#333] text-gray-300 text-xs py-2 rounded-lg border border-[#333] transition-colors font-semibold" data-time="60">60s</button>
+                    <button type="button" class="timer-btn flex-1 bg-[#1E1E1E] hover:bg-[#333] text-gray-300 text-xs py-2 rounded-lg border border-[#333] transition-colors font-semibold" data-time="90">90s</button>
+                    <button type="button" class="timer-btn flex-1 bg-[#1E1E1E] hover:bg-[#333] text-gray-300 text-xs py-2 rounded-lg border border-[#333] transition-colors font-semibold" data-time="120">120s</button>
+                    <button type="button" class="timer-btn flex-1 bg-[#1E1E1E] hover:bg-[#333] text-gray-300 text-xs py-2 rounded-lg border border-[#333] transition-colors font-semibold" data-time="180">180s</button>
+                    <button type="button" id="timer-cancel" class="hidden bg-red-500/20 text-red-500 px-3 rounded-lg border border-red-500/30 hover:bg-red-500/30 transition-colors" title="Cancel Timer"><i class="fa-solid fa-times"></i></button>
                 </div>
             </div>
 
@@ -271,11 +287,11 @@
                         <!-- 1RM Advice Text -->
                         <div id="log-advice-1rm" class="text-[10px] text-[#00E676] mt-1 ml-1 h-3 font-mono font-bold"></div>
                         <!-- Recent History -->
-                        <div id="log-recent-history" class="mt-2 space-y-1"></div>
+                        <div id="log-recent-history" class="mt-2 ml-1 space-y-1"></div>
                     </div>
 
-                    <div class="grid grid-cols-3 gap-3">
-                        <div class="col-span-1">
+                    <div class="grid grid-cols-3 gap-3" id="log-inputs-grid">
+                        <div class="col-span-1" id="container-sets">
                             <label class="text-xs text-gray-500 uppercase font-bold ml-1 mb-1 block">Sets</label>
                             <div class="relative">
                                 <select id="input-set-count" class="input-field w-full p-3 rounded-xl text-lg font-bold text-center appearance-none">
@@ -288,13 +304,13 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="col-span-1">
-                            <label class="text-xs text-gray-500 uppercase font-bold ml-1 mb-1 block">kg/lbs</label>
-                            <input type="number" id="input-weight" placeholder="0" step="0.1"
+                        <div class="col-span-1" id="container-weight">
+                            <label id="label-weight" class="text-xs text-gray-500 uppercase font-bold ml-1 mb-1 block whitespace-nowrap">kg/lbs/BW</label>
+                            <input type="text" inputmode="text" id="input-weight" placeholder="0 or BW"
                                 class="input-field w-full p-3 rounded-xl text-lg font-bold text-center" required>
                         </div>
-                        <div class="col-span-1">
-                            <label class="text-xs text-gray-500 uppercase font-bold ml-1 mb-1 block">Reps</label>
+                        <div class="col-span-1" id="container-reps">
+                            <label id="label-reps" class="text-xs text-gray-500 uppercase font-bold ml-1 mb-1 block">Reps</label>
                             <div class="relative">
                                 <select id="input-reps" class="input-field w-full p-3 rounded-xl text-lg font-bold text-center appearance-none" required>
                                     <option value="" disabled selected>0</option>
@@ -385,11 +401,49 @@
             </div>
         </div>
 
+        <!-- VIEW: FLEXIBILITY -->
+        <div id="view-flexibility" class="view-section hidden max-w-md mx-auto space-y-6">
+            <h2 class="text-2xl font-bold mb-4">Flexibility</h2>
+            
+            <!-- Flex Timer (Auto-Restarting) -->
+            <div class="card p-4 rounded-xl flex flex-col gap-3 animate-fade-in border-l-4 border-l-purple-500">
+                <div class="flex justify-between items-center w-full">
+                    <h2 class="text-xs text-gray-500 uppercase font-bold"><i class="fa-solid fa-stopwatch mr-1"></i> Auto-Restart Timer</h2>
+                    <div class="flex items-center gap-2">
+                        <div id="flex-timer-status" class="text-[10px] text-purple-400 hidden font-bold animate-pulse">Restarting in 5s...</div>
+                        <div id="flex-timer-display" class="text-2xl font-bold font-mono text-gray-300 transition-colors duration-300">00:00</div>
+                    </div>
+                </div>
+                <div class="flex justify-between gap-1 sm:gap-2">
+                    <button type="button" class="flex-timer-btn flex-1 bg-[#1E1E1E] hover:bg-[#333] text-gray-300 text-xs py-2 rounded-lg border border-[#333] transition-colors font-semibold" data-time="30">30s</button>
+                    <button type="button" class="flex-timer-btn flex-1 bg-[#1E1E1E] hover:bg-[#333] text-gray-300 text-xs py-2 rounded-lg border border-[#333] transition-colors font-semibold" data-time="45">45s</button>
+                    <button type="button" class="flex-timer-btn flex-1 bg-[#1E1E1E] hover:bg-[#333] text-gray-300 text-xs py-2 rounded-lg border border-[#333] transition-colors font-semibold" data-time="60">60s</button>
+                    <button type="button" class="flex-timer-btn flex-1 bg-[#1E1E1E] hover:bg-[#333] text-gray-300 text-xs py-2 rounded-lg border border-[#333] transition-colors font-semibold" data-time="90">90s</button>
+                    <button type="button" class="flex-timer-btn flex-1 bg-[#1E1E1E] hover:bg-[#333] text-gray-300 text-xs py-2 rounded-lg border border-[#333] transition-colors font-semibold" data-time="120">120s</button>
+                    <button type="button" id="flex-timer-cancel" class="hidden bg-red-500/20 text-red-500 px-3 rounded-lg border border-red-500/30 hover:bg-red-500/30 transition-colors" title="Cancel Timer"><i class="fa-solid fa-times"></i></button>
+                </div>
+            </div>
+
+            <!-- Set Selector -->
+            <div class="flex gap-2 p-1 bg-[#121212] rounded-xl border border-[#2a2a2a]">
+                <button id="btn-flex-set-1" class="flex-1 py-2 text-sm font-bold rounded-lg bg-purple-500 text-black transition-colors shadow-md">Set 1</button>
+                <button id="btn-flex-set-2" class="flex-1 py-2 text-sm font-bold rounded-lg text-gray-400 hover:text-white transition-colors">Set 2</button>
+            </div>
+
+            <!-- Routine List -->
+            <div class="card p-4 rounded-xl">
+                <h3 id="flex-set-title" class="text-sm font-bold uppercase text-purple-400 mb-3 border-b border-[#222] pb-2">Flexibility 1</h3>
+                <div id="flex-list" class="space-y-2 pb-2">
+                    <!-- Injected via JS -->
+                </div>
+            </div>
+        </div>
+
     </main>
 
     <!-- BOTTOM NAVIGATION (Fixed) -->
     <nav class="fixed bottom-0 left-0 right-0 z-50 bg-[#0a0a0a] border-t border-[#222] pb-safe">
-        <div class="flex justify-around items-center h-16 max-w-md mx-auto">
+        <div class="grid grid-cols-4 items-center h-16 max-w-md mx-auto">
             <button class="nav-link active flex flex-col items-center justify-center w-full h-full gap-1" data-target="view-log">
                 <i class="fa-solid fa-pen-to-square text-xl"></i>
                 <span class="text-[10px] font-bold uppercase">Log</span>
@@ -402,13 +456,17 @@
                 <i class="fa-solid fa-chart-line text-xl"></i>
                 <span class="text-[10px] font-bold uppercase">Progress</span>
             </button>
+            <!-- New Flex Tab -->
+            <button class="nav-link flex flex-col items-center justify-center w-full h-full gap-1" data-target="view-flexibility">
+                <i class="fa-solid fa-child-reaching text-xl"></i>
+                <span class="text-[10px] font-bold uppercase">Flex</span>
+            </button>
         </div>
     </nav>
 
     <!-- FIREBASE & APP LOGIC -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        // Switched from Google Auth to Email/Password Auth imports
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, query, orderBy, limit, onSnapshot, serverTimestamp, setDoc, doc, getDoc, updateDoc, arrayUnion, arrayRemove, getDocs, where, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
@@ -433,13 +491,39 @@
         let unsubscribes = [];
         let chartInstance = null;
         
-        // Defined order of defaults
-        const orderedDefaults = [
-            "Bench Press", "Omni Row", "Incline DB Press", "Lateral Raises", "Tricep Pushdowns",
-            "Hack Squat", "Romanian Deadlift", "Bulgarian Split Squat", "Standing Calf Raises",
-            "Overhead Press", "Heavy Pulldowns", "Face Pulls", "Hammer Curls", "EZ Bar Curls",
-            "Trap Bar Deadlift", "Leg Press", "Leg Extensions", "Leg Curl"
+        // NEW Defined order of defaults from the provided image
+        const imageDefaults = [
+            "Box jump or vertical jump",
+            "Trap bar deadlift",
+            "Bench Press",
+            "Bulgarian split squat",
+            "Omni Row",
+            "Pallof press",
+            "Face pull",
+            "DB external rotations",
+            "Serratus wall slides or push-up plus",
+            "Standing calf raise (optional)",
+            "Hack squat",
+            "Heavy Pulldowns",
+            "Hip thrust",
+            "Overhead press",
+            "Seated cable row",
+            "Side plank",
+            "Soleus raises (bent-knee calf)",
+            "Bike/row conditioning",
+            "Running"
         ];
+        
+        // Old defaults pushed to the bottom
+        const oldDefaults = [
+            "Incline DB Press", "Lateral Raises", "Tricep Pushdowns", 
+            "Romanian Deadlift", "Hammer Curls", "EZ Bar Curls", 
+            "Leg Press", "Leg Extensions", "Leg Curl"
+        ];
+        
+        const orderedDefaults = [...imageDefaults, ...oldDefaults];
+        const cardioExercises = ["Bike/row conditioning", "Running"];
+
         // Initialize availableExercises with defaults
         let availableExercises = [...orderedDefaults];
         
@@ -467,13 +551,11 @@
         const logoutBtn = document.getElementById('logout-btn');
         const authError = document.getElementById('auth-error');
 
-        // Helper to show auth errors
         function showAuthError(msg) {
             authError.textContent = msg;
             authError.classList.remove('hidden');
         }
 
-        // Helper to toggle loading state
         function toggleAuthLoading(isLoading) {
             if(isLoading) {
                 authLoading.classList.remove('hidden');
@@ -487,20 +569,13 @@
             }
         }
 
-        // Login Handler
         loginBtn.addEventListener('click', async () => {
             const email = emailInput.value;
             const password = passwordInput.value;
-            
-            if(!email || !password) {
-                showAuthError("Please enter email and password");
-                return;
-            }
-            
+            if(!email || !password) { showAuthError("Please enter email and password"); return; }
             toggleAuthLoading(true);
-            try {
-                await signInWithEmailAndPassword(auth, email, password);
-            } catch (error) {
+            try { await signInWithEmailAndPassword(auth, email, password); } 
+            catch (error) {
                 console.error("Login failed:", error);
                 let msg = "Login failed. Check your credentials.";
                 if(error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
@@ -511,51 +586,33 @@
             }
         });
 
-        // Register Handler
         registerBtn.addEventListener('click', async () => {
             const email = emailInput.value;
             const password = passwordInput.value;
-            
-            if(!email || !password) {
-                showAuthError("Please enter email and password");
-                return;
-            }
-            
-            if(password.length < 6) {
-                showAuthError("Password must be at least 6 characters");
-                return;
-            }
-            
+            if(!email || !password) { showAuthError("Please enter email and password"); return; }
+            if(password.length < 6) { showAuthError("Password must be at least 6 characters"); return; }
             toggleAuthLoading(true);
-            try {
-                await createUserWithEmailAndPassword(auth, email, password);
-            } catch (error) {
+            try { await createUserWithEmailAndPassword(auth, email, password); } 
+            catch (error) {
                 console.error("Registration failed:", error);
                 let msg = "Registration failed.";
-                if(error.code === 'auth/email-already-in-use') {
-                    msg = "Email already in use.";
-                } else if (error.code === 'auth/invalid-email') {
-                    msg = "Invalid email format.";
-                }
+                if(error.code === 'auth/email-already-in-use') msg = "Email already in use.";
+                else if (error.code === 'auth/invalid-email') msg = "Invalid email format.";
                 showAuthError(msg);
                 toggleAuthLoading(false);
             }
         });
 
-        // Auth State Listener
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 currentUser = user;
                 authScreen.classList.add('opacity-0', 'pointer-events-none');
                 document.getElementById('user-email').textContent = user.email;
                 document.getElementById('user-info').classList.remove('hidden');
-                
-                // Clear form
                 emailInput.value = '';
                 passwordInput.value = '';
                 toggleAuthLoading(false);
                 
-                // Initialize date picker to today
                 const now = new Date();
                 const localDate = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
                 document.getElementById('input-date').value = localDate;
@@ -568,7 +625,6 @@
                 authScreen.classList.remove('opacity-0', 'pointer-events-none');
                 document.getElementById('user-info').classList.add('hidden');
                 toggleAuthLoading(false);
-                
                 unsubscribes.forEach(unsub => unsub());
                 unsubscribes = [];
             }
@@ -589,16 +645,15 @@
             if (snap.exists()) {
                 const data = snap.data();
                 if(data.list && data.list.length > 0) {
-                    // Find exercises in user list that are NOT in orderedDefaults
+                    // Extract ONLY the user's custom exercises that aren't in our new defaults
                     customExercises = data.list.filter(ex => !orderedDefaults.includes(ex));
-                    customExercises.sort(); // Sort only the custom ones alphabetically
                 }
             }
             
-            // Reconstruct list: Defaults (Ordered) + Custom (Sorted)
+            // Force the exact order: Image Defaults first, then Old Defaults, then Custom Exercises at the bottom
             availableExercises = [...orderedDefaults, ...customExercises];
             
-            // Sync merged list back to Firestore
+            // Sync the corrected order back to Firestore to overwrite the old saved list
             await setDoc(ref, { list: availableExercises }, { merge: true });
             
             updateExerciseDropdown();
@@ -610,11 +665,12 @@
             name = name.charAt(0).toUpperCase() + name.slice(1);
 
             if (!availableExercises.includes(name)) {
+                // Add to the end of the list (No alphabetical sorting)
                 availableExercises.push(name);
-                // Do NOT sort entire list here, just update
                 updateExerciseDropdown();
                 const ref = getSettingsRef();
-                await setDoc(ref, { list: arrayUnion(name) }, { merge: true });
+                // Save the exact array order to Firestore
+                await setDoc(ref, { list: availableExercises }, { merge: true });
                 
                 // Auto-select new exercise
                 const dropdown = document.getElementById('input-exercise');
@@ -629,7 +685,8 @@
             availableExercises = availableExercises.filter(e => e !== name);
             updateExerciseDropdown();
             const ref = getSettingsRef();
-            await updateDoc(ref, { list: arrayRemove(name) });
+            // Save the new array state to Firestore
+            await setDoc(ref, { list: availableExercises }, { merge: true });
             renderManagerList();
         }
 
@@ -664,17 +721,154 @@
             modal.classList.add('hidden');
         });
 
+        async function moveExercise(index, direction) {
+            const targetIndex = index + direction;
+            if (targetIndex < 0 || targetIndex >= availableExercises.length) return;
+
+            // Swap items
+            const temp = availableExercises[index];
+            availableExercises[index] = availableExercises[targetIndex];
+            availableExercises[targetIndex] = temp;
+
+            // Optimistic update UI
+            renderManagerList();
+            updateExerciseDropdown();
+
+            // Save new order to Firestore
+            const ref = getSettingsRef();
+            try {
+                await setDoc(ref, { list: availableExercises }, { merge: true });
+            } catch(e) {
+                console.error("Error saving list order:", e);
+                showToast("Failed to save order", true);
+            }
+        }
+
+        async function performRename(oldName, newNameRaw) {
+            let newName = newNameRaw.trim();
+            // Smart casing match if it already exists
+            const existingMatch = availableExercises.find(e => e.toLowerCase() === newName.toLowerCase());
+            if (existingMatch) newName = existingMatch;
+
+            try {
+                showToast(`Updating records...`);
+                
+                // 1. Update all past workouts in Firestore to the new name
+                const workoutsRef = collection(db, 'users', currentUser.uid, 'workouts');
+                const q = query(workoutsRef, where("exercise", "==", oldName));
+                const snap = await getDocs(q);
+                
+                const promises = [];
+                snap.forEach(docSnap => {
+                    promises.push(updateDoc(doc(db, 'users', currentUser.uid, 'workouts', docSnap.id), { exercise: newName }));
+                });
+                await Promise.all(promises);
+
+                // 2. Update list order
+                const index = availableExercises.indexOf(oldName);
+                if (index > -1) {
+                    if (availableExercises.includes(newName) && newName !== oldName) {
+                        availableExercises.splice(index, 1); // Merge: remove duplicate
+                    } else {
+                        availableExercises[index] = newName; // Rename in place
+                    }
+                } else if (!availableExercises.includes(newName)) {
+                     availableExercises.push(newName);
+                }
+
+                const ref = getSettingsRef();
+                await setDoc(ref, { list: availableExercises }, { merge: true });
+
+                updateExerciseDropdown();
+                renderManagerList();
+                showToast(`Merged/Renamed to "${newName}"`);
+
+                // Update dropdown active value if needed
+                const dropdown = document.getElementById('input-exercise');
+                if (dropdown.value === oldName || dropdown.value === newName) {
+                    dropdown.value = newName;
+                    dropdown.dispatchEvent(new Event('change'));
+                }
+            } catch (err) {
+                console.error("Rename error:", err);
+                showToast("Error updating records", true);
+                renderManagerList(); // reset UI
+            }
+        }
+
         function renderManagerList() {
             managerList.innerHTML = '';
-            availableExercises.forEach(ex => {
+            availableExercises.forEach((ex, index) => {
                 const div = document.createElement('div');
                 div.className = 'flex justify-between items-center bg-[#181818] p-2 rounded mb-1';
-                div.innerHTML = `
-                    <span class="text-sm">${ex}</span>
-                    <button class="text-red-400 hover:text-red-200 px-2" onclick="window.removeEx('${ex}')">
-                        <i class="fa-solid fa-times"></i>
-                    </button>
-                `;
+                
+                const nameContainer = document.createElement('div');
+                nameContainer.className = 'flex-1 min-w-0 mr-2';
+                
+                const nameText = document.createElement('span');
+                nameText.className = 'text-sm text-gray-200 truncate block w-full';
+                nameText.textContent = ex;
+                nameContainer.appendChild(nameText);
+
+                const controls = document.createElement('div');
+                controls.className = 'flex gap-2 items-center shrink-0';
+
+                // Move Up
+                const upBtn = document.createElement('button');
+                upBtn.innerHTML = '<i class="fa-solid fa-arrow-up"></i>';
+                upBtn.className = `text-gray-500 hover:text-white px-1 transition ${index === 0 ? 'opacity-30 cursor-not-allowed' : ''}`;
+                upBtn.onclick = () => { if(index > 0) moveExercise(index, -1); };
+
+                // Move Down
+                const downBtn = document.createElement('button');
+                downBtn.innerHTML = '<i class="fa-solid fa-arrow-down"></i>';
+                downBtn.className = `text-gray-500 hover:text-white px-1 transition ${index === availableExercises.length - 1 ? 'opacity-30 cursor-not-allowed' : ''}`;
+                downBtn.onclick = () => { if(index < availableExercises.length - 1) moveExercise(index, 1); };
+
+                // Rename (Inline)
+                const renameBtn = document.createElement('button');
+                renameBtn.innerHTML = '<i class="fa-solid fa-pen"></i>';
+                renameBtn.className = 'text-blue-400 hover:text-blue-200 px-1 ml-1 transition';
+                
+                // Delete
+                const delBtn = document.createElement('button');
+                delBtn.innerHTML = '<i class="fa-solid fa-times"></i>';
+                delBtn.className = 'text-red-400 hover:text-red-200 px-1 transition';
+                delBtn.onclick = () => removeExerciseFromList(ex);
+
+                // Setup inline rename logic
+                renameBtn.onclick = () => {
+                    // Hide other controls during edit
+                    upBtn.style.display = 'none';
+                    downBtn.style.display = 'none';
+                    delBtn.style.display = 'none';
+                    
+                    // Transform to input
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.value = ex;
+                    input.className = 'w-full bg-[#1E1E1E] text-white text-sm p-1 rounded border border-[#00E676] focus:outline-none';
+                    nameContainer.replaceChild(input, nameText);
+                    input.focus();
+                    
+                    // Change pencil to checkmark
+                    renameBtn.innerHTML = '<i class="fa-solid fa-check text-[#00E676]"></i>';
+                    
+                    const saveChange = async () => {
+                        const val = input.value;
+                        if (val && val !== ex) {
+                            await performRename(ex, val);
+                        } else {
+                            renderManagerList(); // Revert
+                        }
+                    };
+
+                    renameBtn.onclick = saveChange;
+                    input.onkeydown = (e) => { if(e.key === 'Enter') saveChange(); };
+                };
+
+                controls.append(upBtn, downBtn, renameBtn, delBtn);
+                div.append(nameContainer, controls);
                 managerList.appendChild(div);
             });
         }
@@ -687,47 +881,82 @@
                 addExerciseToList(input.value);
                 input.value = '';
                 renderManagerList();
-                modal.classList.add('hidden'); // Close modal after adding
+                modal.classList.add('hidden');
             }
         });
 
         // --- 4. WORKOUT LOGGING ---
         
-        // AUTO-FILL & 1RM LISTENER
+        // AUTO-FILL & CARDIO UI LISTENER
         const exerciseDropdown = document.getElementById('input-exercise');
         exerciseDropdown.addEventListener('change', (e) => {
             const selectedExercise = e.target.value;
             if (!selectedExercise) return;
             
+            const isCardio = cardioExercises.includes(selectedExercise);
+            const containerSets = document.getElementById('container-sets');
+            const containerWeight = document.getElementById('container-weight');
+            const containerReps = document.getElementById('container-reps');
+            const labelWeight = document.getElementById('label-weight');
+            
+            // Adjust UI for Cardio vs Standard
+            if (isCardio) {
+                containerSets.style.display = 'none';
+                containerReps.style.display = 'none';
+                containerWeight.classList.replace('col-span-1', 'col-span-3');
+                labelWeight.textContent = 'Minutes';
+                document.getElementById('input-weight').placeholder = 'e.g. 30';
+                // Reset required attribute for hidden reps
+                document.getElementById('input-reps').removeAttribute('required');
+            } else {
+                containerSets.style.display = 'block';
+                containerReps.style.display = 'block';
+                containerWeight.classList.replace('col-span-3', 'col-span-1');
+                labelWeight.textContent = 'kg/lbs/BW';
+                document.getElementById('input-weight').placeholder = '0 or BW';
+                document.getElementById('input-reps').setAttribute('required', 'true');
+            }
+
             // 1. Auto-fill Last Session Values
             const lastLog = workoutsCache.find(w => w.exercise === selectedExercise);
             
             if (lastLog) {
-                document.getElementById('input-set-count').value = lastLog.setCount || 1;
+                if (!isCardio) {
+                    document.getElementById('input-set-count').value = lastLog.setCount || 1;
+                    document.getElementById('input-reps').value = lastLog.reps || "";
+                }
                 document.getElementById('input-weight').value = lastLog.weight;
-                document.getElementById('input-reps').value = lastLog.reps;
             } else {
-                document.getElementById('input-set-count').value = 1;
+                if (!isCardio) {
+                    document.getElementById('input-set-count').value = 1;
+                    document.getElementById('input-reps').value = "";
+                }
                 document.getElementById('input-weight').value = '';
-                document.getElementById('input-reps').value = '';
             }
 
-            // 2. Calculate and Display Best 1RM
-            const exWorkouts = workoutsCache.filter(w => w.exercise === selectedExercise);
-            let best1RM = 0;
-            exWorkouts.forEach(w => {
-                 const est = w.weight * (1 + (w.reps / 30));
-                 if(est > best1RM) best1RM = est;
-            });
-            
+            // 2. Calculate and Display Best 1RM (Skip if cardio)
             const adviceEl = document.getElementById('log-advice-1rm');
-            if (best1RM > 0) {
-                adviceEl.textContent = `~1RM = ${Math.round(best1RM)} kg`;
-            } else {
+            const exWorkouts = workoutsCache.filter(w => w.exercise === selectedExercise);
+            
+            if (isCardio) {
                 adviceEl.textContent = '';
+            } else {
+                let best1RM = 0;
+                exWorkouts.forEach(w => {
+                     if (w.weight !== 'BW' && !isNaN(parseFloat(w.weight))) {
+                         const est = parseFloat(w.weight) * (1 + (w.reps / 30));
+                         if(est > best1RM) best1RM = est;
+                     }
+                });
+                
+                if (best1RM > 0) {
+                    adviceEl.textContent = `~1RM = ${Math.round(best1RM)} kg`;
+                } else {
+                    adviceEl.textContent = '';
+                }
             }
 
-            // 3. Display Recent History
+            // 3. Display Recent History format: (yyyy-mm-dd) Sets - Kg x Reps
             const recentHistoryEl = document.getElementById('log-recent-history');
             recentHistoryEl.innerHTML = ''; 
 
@@ -740,13 +969,17 @@
                 const dd = String(dateObj.getDate()).padStart(2, '0');
                 const dateFmt = `${yyyy}-${mm}-${dd}`;
                 
-                const sets = item.setCount || 1;
-                const weight = item.weight;
-                const reps = item.reps;
-
                 const line = document.createElement('div');
                 line.className = "text-[10px] text-gray-500 font-mono";
-                line.textContent = `(${dateFmt}) ${sets} - ${weight} x ${reps}`; 
+
+                if (cardioExercises.includes(item.exercise)) {
+                    line.textContent = `(${dateFmt}) ${item.weight} mins`;
+                } else {
+                    const sets = item.setCount || 1;
+                    const reps = item.reps;
+                    const wDisplay = item.weight === 'BW' ? 'BW' : `${item.weight}kg`;
+                    line.textContent = `(${dateFmt}) ${sets} - ${wDisplay} x ${reps}`; 
+                }
                 
                 recentHistoryEl.appendChild(line);
             });
@@ -754,24 +987,19 @@
 
         function setupDecimalRestriction(inputId) {
             const el = document.getElementById(inputId);
-            el.addEventListener('input', (e) => {
-                const val = e.target.value;
-                if (val.includes('.')) {
-                    const [whole, decimal] = val.split('.');
-                    if (decimal && decimal.length > 1) {
-                        e.target.value = `${whole}.${decimal.substring(0, 1)}`;
-                    }
-                }
-            });
             el.addEventListener('blur', (e) => {
-                if(e.target.value && !isNaN(e.target.value)) {
-                   e.target.value = parseFloat(e.target.value).toFixed(1);
+                const val = e.target.value.trim().toUpperCase();
+                if (val === 'BW') {
+                    e.target.value = 'BW';
+                    return;
+                }
+                if(val && !isNaN(val)) {
+                   e.target.value = parseFloat(val).toFixed(1);
                 }
             });
         }
         
         setupDecimalRestriction('input-weight');
-        setupDecimalRestriction('input-bodyweight');
 
         const getWorkoutsRef = () => collection(db, 'users', currentUser.uid, 'workouts');
 
@@ -781,36 +1009,58 @@
                 showToast("Please select an exercise", true);
                 return;
             }
-            try {
-                // Exercise selection handled via dropdown, no auto-add needed
-                const ref = getWorkoutsRef();
-                const formattedWeight = parseFloat(parseFloat(weight).toFixed(1));
+            
+            const isCardio = cardioExercises.includes(exercise);
+            let formattedWeight;
+            const rawWeight = weight.trim().toUpperCase();
+            
+            // Check if BW or numeric
+            if (rawWeight === 'BW' && !isCardio) {
+                formattedWeight = 'BW';
+                document.getElementById('input-weight').value = 'BW';
+            } else {
+                formattedWeight = parseFloat(parseFloat(weight).toFixed(1));
+                if (isNaN(formattedWeight)) {
+                    showToast(isCardio ? "Please enter valid minutes" : "Invalid weight", true);
+                    return;
+                }
                 document.getElementById('input-weight').value = formattedWeight.toFixed(1);
+            }
 
-                // Date Handling
+            try {
+                const ref = getWorkoutsRef();
                 const dateInput = document.getElementById('input-date');
-                // Create date object from input (treat as local time)
                 const [y, m, d] = dateInput.value.split('-').map(Number);
-                const logDate = new Date(y, m - 1, d, 12, 0, 0); // Noon to match local day safely
+                const logDate = new Date(y, m - 1, d, 12, 0, 0); 
 
                 await addDoc(ref, {
                     exercise: exercise,
-                    weight: formattedWeight,
-                    reps: parseInt(reps),
-                    setCount: parseInt(numSets),
-                    timestamp: logDate, // Firestore handles JS Date conversion
+                    weight: formattedWeight, // Holds "BW", weight(kg), or minutes
+                    reps: isCardio ? 0 : parseInt(reps),
+                    setCount: isCardio ? 1 : parseInt(numSets),
+                    timestamp: logDate, 
                     dateStr: logDate.toLocaleDateString()
                 });
 
-                const setMsg = numSets > 1 ? `${numSets} Sets` : `Set`;
-                const dateMsg = dateInput.value === new Date().toISOString().split('T')[0] ? "" : ` on ${logDate.toLocaleDateString()}`;
-                showToast(`Logged: ${exercise} (${setMsg} x ${reps})${dateMsg}`);
+                let toastMsg = "";
+                if (isCardio) {
+                    toastMsg = `Logged: ${exercise} (${formattedWeight} mins)`;
+                } else {
+                    const setMsg = numSets > 1 ? `${numSets} Sets` : `Set`;
+                    const wDisplay = formattedWeight === 'BW' ? 'BW' : `${formattedWeight}kg`;
+                    toastMsg = `Logged: ${exercise} (${setMsg} - ${wDisplay} x ${reps})`;
+                }
                 
-                document.getElementById('input-set-count').value = "1";
-                document.getElementById('input-reps').value = ""; // Reset to default
-                document.getElementById('input-exercise').value = ""; // Reset dropdown
-                document.getElementById('log-advice-1rm').textContent = ""; // Clear advice
-                document.getElementById('log-recent-history').innerHTML = ""; // Clear recent history
+                const dateMsg = dateInput.value === new Date().toISOString().split('T')[0] ? "" : ` on ${logDate.toLocaleDateString()}`;
+                showToast(toastMsg + dateMsg);
+                
+                if (!isCardio) {
+                    document.getElementById('input-set-count').value = "1";
+                    document.getElementById('input-reps').value = ""; 
+                }
+                document.getElementById('input-exercise').value = ""; 
+                document.getElementById('log-advice-1rm').textContent = ""; 
+                document.getElementById('log-recent-history').innerHTML = "";
             } catch (e) {
                 console.error("Error adding document: ", e);
                 showToast("Error saving workout", true);
@@ -822,16 +1072,13 @@
         const inputBW = document.getElementById('input-bodyweight');
         const dateInput = document.getElementById('input-date');
 
-        // Refresh status when date changes
         dateInput.addEventListener('change', fetchBodyWeightStatus);
 
         async function fetchBodyWeightStatus() {
             if (!currentUser) return;
-            
             const display = document.getElementById('last-bw-display');
             const icon = btnSaveBW.querySelector('i');
             
-            // Get selected date
             const [y, m, d] = dateInput.value.split('-').map(Number);
             const selectedDateStr = new Date(y, m - 1, d).toLocaleDateString();
             const todayStr = new Date().toLocaleDateString();
@@ -840,25 +1087,21 @@
 
             try {
                 const ref = collection(db, 'users', currentUser.uid, 'bodyweight');
-                // Check if entry exists for SELECTED date
                 const qTarget = query(ref, where("dateStr", "==", selectedDateStr), limit(1));
                 const snapTarget = await getDocs(qTarget);
 
                 if (!snapTarget.empty) {
-                    // Edit Mode
                     const d = snapTarget.docs[0];
-                    todayBWDocId = d.id; // Using global variable to store current edit ID
+                    todayBWDocId = d.id; 
                     inputBW.value = d.data().weight;
                     display.textContent = `Recorded: ${d.data().weight}kg (${dateLabel})`;
                     inputBW.disabled = true;
                     icon.className = "fa-solid fa-pen-to-square text-white";
                 } else {
-                    // New Mode
                     todayBWDocId = null;
                     inputBW.disabled = false;
                     icon.className = "fa-solid fa-save text-[#00E676]";
 
-                    // Fetch last known weight for context
                     const qLast = query(ref, orderBy("timestamp", "desc"), limit(1));
                     const snapLast = await getDocs(qLast);
                     if (!snapLast.empty) {
@@ -889,7 +1132,6 @@
             if (!weight || !currentUser) return;
             weight = parseFloat(weight.toFixed(1));
 
-            // Date Handling
             const [y, m, d] = dateInput.value.split('-').map(Number);
             const logDate = new Date(y, m - 1, d, 12, 0, 0);
             const logDateStr = logDate.toLocaleDateString();
@@ -898,7 +1140,7 @@
                 const collectionRef = collection(db, 'users', currentUser.uid, 'bodyweight');
                 if (todayBWDocId) {
                     const docRef = doc(db, 'users', currentUser.uid, 'bodyweight', todayBWDocId);
-                    await updateDoc(docRef, { weight: weight }); // Update existing
+                    await updateDoc(docRef, { weight: weight }); 
                     showToast(`Updated: ${weight}kg`);
                 } else {
                     const docRef = await addDoc(collectionRef, {
@@ -928,7 +1170,6 @@
             unsubscribes = [];
 
             const workoutsRef = collection(db, 'users', currentUser.uid, 'workouts');
-            // Increased limit to 100 to better support auto-fill
             const qWorkouts = query(workoutsRef, orderBy("timestamp", "desc"), limit(100));
             const unsubWorkouts = onSnapshot(qWorkouts, (snapshot) => {
                 workoutsCache = snapshot.docs.map(doc => ({ 
@@ -939,6 +1180,11 @@
                 refreshHistoryView();
                 renderToday(workoutsCache);
                 updateChartData(workoutsCache);
+                
+                // Re-trigger dropdown to update recent history if it's currently selected
+                if(document.getElementById('input-exercise').value) {
+                     document.getElementById('input-exercise').dispatchEvent(new Event('change'));
+                }
             });
             unsubscribes.push(unsubWorkouts);
 
@@ -999,9 +1245,6 @@
         });
 
         const deleteLog = async (id, collectionName) => {
-            // Removed confirm() as it blocks/fails in some preview environments
-            // if(!confirm("Delete this entry?")) return;
-            
             try {
                 const ref = doc(db, 'users', currentUser.uid, collectionName, id);
                 await deleteDoc(ref);
@@ -1015,6 +1258,206 @@
         // --- UI LOGIC ---
         const navLinks = document.querySelectorAll('.nav-link');
         const views = document.querySelectorAll('.view-section');
+
+        // REST TIMER LOGIC
+        let restTimerInterval = null;
+        let restTimeRemaining = 0;
+        
+        function updateTimerDisplay() {
+            const display = document.getElementById('timer-display');
+            const cancelBtn = document.getElementById('timer-cancel');
+            
+            if (restTimeRemaining <= 0) {
+                display.textContent = "00:00";
+                display.classList.remove('text-[#00E676]', 'animate-pulse');
+                display.classList.add('text-gray-300');
+                cancelBtn.classList.add('hidden');
+                return;
+            }
+            
+            const m = Math.floor(restTimeRemaining / 60).toString().padStart(2, '0');
+            const s = (restTimeRemaining % 60).toString().padStart(2, '0');
+            display.textContent = `${m}:${s}`;
+            
+            display.classList.add('text-[#00E676]');
+            display.classList.remove('text-gray-300');
+            cancelBtn.classList.remove('hidden');
+            
+            if (restTimeRemaining <= 5) {
+                display.classList.add('animate-pulse');
+            }
+        }
+
+        function startTimer(seconds) {
+            if (restTimerInterval) clearInterval(restTimerInterval);
+            restTimeRemaining = seconds;
+            updateTimerDisplay();
+            
+            restTimerInterval = setInterval(() => {
+                restTimeRemaining--;
+                updateTimerDisplay();
+                
+                if (restTimeRemaining <= 0) {
+                    clearInterval(restTimerInterval);
+                    restTimerInterval = null;
+                    document.getElementById('timer-display').classList.remove('animate-pulse');
+                    if (window.navigator && window.navigator.vibrate) {
+                        window.navigator.vibrate([200, 100, 200]);
+                    }
+                    showToast("Rest time is up!");
+                }
+            }, 1000);
+        }
+
+        document.querySelectorAll('.timer-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const timeStr = e.target.getAttribute('data-time') || e.target.closest('button').getAttribute('data-time');
+                startTimer(parseInt(timeStr));
+            });
+        });
+
+        document.getElementById('timer-cancel').addEventListener('click', () => {
+            if (restTimerInterval) clearInterval(restTimerInterval);
+            restTimeRemaining = 0;
+            updateTimerDisplay();
+            document.getElementById('timer-display').classList.remove('animate-pulse');
+        });
+
+        // FLEXIBILITY UI LOGIC
+        const flexibilitySets = {
+            1: [
+                "Planks", "Super man (YWT)", "Child pose/Back Stretch", "Upward/Downward", "Bridge", 
+                "V1", "Lungeattack1", "Sky1", "lunge knee 1", "lunge knee deeper hold 1", "hold foot 1",
+                "V2", "Lungeattack2", "Sky2", "lunge knee 2", "lunge knee deeper hold 2", "hold foot 2",
+                "Pigeon 52"
+            ],
+            2: [
+                "PR Static Hold Left Right", "PR Dynamic Left Right", "PR Dynamic knee/foot up 10 reps each",
+                "PR Dynamic push up using feet", "PR Dynamic Stretch 2 each", "Warriors 1 (30s each L/R)",
+                "Warriors 2 (30s each L/R)", "Warriors 3 (30s each L/R)", "Warriors 4", "Warriors 5",
+                "Labada yoga squat + hands up", "Necks/Arms", "Standing back stretch", "Wall sits",
+                "Monkey", "Bear", "Crab", "Frog"
+            ]
+        };
+
+        const btnSet1 = document.getElementById('btn-flex-set-1');
+        const btnSet2 = document.getElementById('btn-flex-set-2');
+        const flexTitle = document.getElementById('flex-set-title');
+        const flexList = document.getElementById('flex-list');
+
+        function renderFlexSet(setNum) {
+            if (setNum === 1) {
+                btnSet1.className = "flex-1 py-2 text-sm font-bold rounded-lg bg-purple-500 text-black transition-colors shadow-md";
+                btnSet2.className = "flex-1 py-2 text-sm font-bold rounded-lg text-gray-400 hover:text-white transition-colors";
+                flexTitle.textContent = "Flexibility 1";
+            } else {
+                btnSet2.className = "flex-1 py-2 text-sm font-bold rounded-lg bg-purple-500 text-black transition-colors shadow-md";
+                btnSet1.className = "flex-1 py-2 text-sm font-bold rounded-lg text-gray-400 hover:text-white transition-colors";
+                flexTitle.textContent = "Flexibility 2";
+            }
+
+            flexList.innerHTML = '';
+            flexibilitySets[setNum].forEach((ex, index) => {
+                const el = document.createElement('div');
+                el.className = "flex items-center gap-3 p-3 bg-[#181818] rounded-lg border border-[#222]";
+                el.innerHTML = `
+                    <div class="text-purple-500 text-xs font-mono font-bold w-5 opacity-70">${index + 1}.</div>
+                    <div class="text-sm font-medium text-gray-200">${ex}</div>
+                `;
+                flexList.appendChild(el);
+            });
+        }
+
+        btnSet1.addEventListener('click', () => renderFlexSet(1));
+        btnSet2.addEventListener('click', () => renderFlexSet(2));
+        renderFlexSet(1);
+
+        // FLEXIBILITY AUTO-RESTART TIMER LOGIC
+        let flexTimerInterval = null;
+        let flexTimeout = null;
+        let flexTimeRemaining = 0;
+        let flexSelectedTime = 0;
+
+        function updateFlexTimerDisplay() {
+            const display = document.getElementById('flex-timer-display');
+            const cancelBtn = document.getElementById('flex-timer-cancel');
+            const status = document.getElementById('flex-timer-status');
+            
+            if (flexTimeRemaining <= 0 && !flexSelectedTime) {
+                display.textContent = "00:00";
+                display.classList.remove('text-purple-400', 'animate-pulse');
+                display.classList.add('text-gray-300');
+                cancelBtn.classList.add('hidden');
+                status.classList.add('hidden');
+                return;
+            }
+            
+            const m = Math.floor(flexTimeRemaining / 60).toString().padStart(2, '0');
+            const s = (flexTimeRemaining % 60).toString().padStart(2, '0');
+            display.textContent = `${m}:${s}`;
+            
+            display.classList.add('text-purple-400');
+            display.classList.remove('text-gray-300');
+            cancelBtn.classList.remove('hidden');
+            
+            if (flexTimeRemaining > 0 && flexTimeRemaining <= 5) {
+                display.classList.add('animate-pulse');
+            } else {
+                display.classList.remove('animate-pulse');
+            }
+        }
+
+        function startFlexTimer(seconds) {
+            if (flexTimerInterval) clearInterval(flexTimerInterval);
+            if (flexTimeout) clearTimeout(flexTimeout);
+            
+            document.getElementById('flex-timer-status').classList.add('hidden');
+            flexSelectedTime = seconds;
+            flexTimeRemaining = seconds;
+            updateFlexTimerDisplay();
+            
+            flexTimerInterval = setInterval(() => {
+                flexTimeRemaining--;
+                updateFlexTimerDisplay();
+                
+                if (flexTimeRemaining <= 0) {
+                    clearInterval(flexTimerInterval);
+                    flexTimerInterval = null;
+                    document.getElementById('flex-timer-display').classList.remove('animate-pulse');
+                    
+                    if (window.navigator && window.navigator.vibrate) {
+                        window.navigator.vibrate([200, 100, 200]);
+                    }
+                    
+                    // Start 5s wait before restart
+                    document.getElementById('flex-timer-status').classList.remove('hidden');
+                    flexTimeout = setTimeout(() => {
+                        if(flexSelectedTime) { 
+                            startFlexTimer(flexSelectedTime); // Auto-restart
+                        }
+                    }, 5000);
+                }
+            }, 1000);
+        }
+
+        document.querySelectorAll('.flex-timer-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const timeStr = e.target.getAttribute('data-time') || e.target.closest('button').getAttribute('data-time');
+                startFlexTimer(parseInt(timeStr));
+            });
+        });
+
+        document.getElementById('flex-timer-cancel').addEventListener('click', () => {
+            if (flexTimerInterval) clearInterval(flexTimerInterval);
+            if (flexTimeout) clearTimeout(flexTimeout);
+            
+            flexTimeRemaining = 0;
+            flexSelectedTime = 0;
+            updateFlexTimerDisplay();
+            
+            document.getElementById('flex-timer-display').classList.remove('animate-pulse');
+            document.getElementById('flex-timer-status').classList.add('hidden');
+        });
 
         navLinks.forEach(link => {
             link.addEventListener('click', () => {
@@ -1155,6 +1598,21 @@
                     
                     if (item.type === 'workout') {
                         const setCount = item.setCount || 1;
+                        const isCardio = cardioExercises.includes(item.exercise);
+                        const wDisplay = item.weight === 'BW' ? 'BW' : `${item.weight}kg`;
+                        
+                        let subtext = '';
+                        let rightText = '';
+
+                        if (isCardio) {
+                            subtext = `${item.weight} mins`;
+                            rightText = `<i class="fa-solid fa-stopwatch text-gray-500"></i>`;
+                        } else {
+                            subtext = `${wDisplay} <span class="text-gray-700">x</span> ${item.reps}`;
+                            const vol = item.weight === 'BW' ? 0 : (item.weight * item.reps * setCount);
+                            rightText = item.weight === 'BW' ? '-' : `${vol.toFixed(0)} <span class="text-[9px] font-normal">vol</span>`;
+                        }
+
                         el.className = 'flex justify-between items-center group cursor-pointer hover:bg-[#1a1a1a] p-2 -mx-2 rounded transition-colors';
                         el.innerHTML = `
                             <div class="flex flex-col">
@@ -1162,11 +1620,11 @@
                                     <span class="font-bold text-gray-200 text-sm">${item.exercise}</span>
                                     ${setCount > 1 ? `<span class="text-[9px] bg-[#222] text-[#00E676] px-1.5 rounded uppercase font-bold">${setCount} Sets</span>` : ''}
                                 </div>
-                                <div class="text-xs text-gray-500 mt-0.5">${item.weight}kg <span class="text-gray-700">x</span> ${item.reps}</div>
+                                <div class="text-xs text-gray-500 mt-0.5">${subtext}</div>
                             </div>
                             <div class="flex items-center gap-3">
                                 <div class="text-sm font-bold text-gray-600 text-right group-hover:text-gray-400 transition-colors">
-                                    ${(item.weight * item.reps * setCount).toFixed(0)} <span class="text-[9px] font-normal">vol</span>
+                                    ${rightText}
                                 </div>
                             </div>
                         `;
@@ -1209,6 +1667,13 @@
             container.innerHTML = '';
             todayWorkouts.forEach(w => {
                  const setCount = w.setCount || 1;
+                 const isCardio = cardioExercises.includes(w.exercise);
+                 const wDisplay = w.weight === 'BW' ? 'BW' : `${w.weight}kg`;
+                 
+                 const metricsDisplay = isCardio 
+                     ? `${w.weight} mins` 
+                     : `${wDisplay} x ${w.reps}`;
+
                  const el = document.createElement('div');
                  el.className = "flex justify-between items-center bg-[#181818] p-3 rounded-lg border border-[#222]";
                  el.innerHTML = `
@@ -1217,7 +1682,7 @@
                         <span class="text-[10px] text-gray-500">${setCount} ${setCount > 1 ? 'Sets' : 'Set'}</span>
                     </div>
                     <div class="flex items-center gap-3">
-                        <span class="font-bold text-sm text-white">${w.weight}kg x ${w.reps}</span>
+                        <span class="font-bold text-sm text-white">${metricsDisplay}</span>
                         <button class="text-gray-600 hover:text-red-500 transition-colors p-2" title="Delete Entry">
                             <i class="fa-solid fa-trash-can"></i>
                         </button>
@@ -1254,7 +1719,7 @@
                     plugins: { 
                         legend: { 
                             display: true,
-                            position: 'bottom', // Legend moved to bottom
+                            position: 'bottom',
                             align: 'start',
                             labels: {
                                 color: '#A0A0A0',
@@ -1354,8 +1819,12 @@
                     const dayMaxMap = {};
                     exWorkouts.forEach(w => {
                         const dStr = w.timestamp.toDate().toLocaleDateString(undefined, {month:'short', day:'numeric'});
-                        if (!dayMaxMap[dStr] || w.weight > dayMaxMap[dStr]) {
-                            dayMaxMap[dStr] = w.weight;
+                        const val = w.weight === 'BW' ? null : parseFloat(w.weight);
+                        
+                        if (val !== null) {
+                            if (!dayMaxMap[dStr] || val > dayMaxMap[dStr]) {
+                                dayMaxMap[dStr] = val;
+                            }
                         }
                     });
 
@@ -1428,24 +1897,37 @@
                 let totalVolume = 0;
                 let totalReps = 0;
 
+                const isCardio = cardioExercises.includes(targetExercise);
+
                 exWorkouts.forEach(w => {
-                    const weight = w.weight || 0;
+                    const weight = w.weight === 'BW' ? 0 : parseFloat(w.weight);
                     const reps = w.reps || 0;
                     const sets = w.setCount || 1;
 
                     if (weight > maxWeight) maxWeight = weight;
-                    const est1RM = weight * (1 + (reps / 30));
-                    if (est1RM > best1RM) best1RM = est1RM;
-                    totalVolume += (weight * reps * sets);
-                    totalReps += (reps * sets);
+                    
+                    if (!isCardio && w.weight !== 'BW') {
+                        const est1RM = weight * (1 + (reps / 30));
+                        if (est1RM > best1RM) best1RM = est1RM;
+                        totalVolume += (weight * reps * sets);
+                        totalReps += (reps * sets);
+                    }
                 });
 
-                document.querySelector('#stat-max-weight').previousElementSibling.textContent = "Heaviest Lift";
-                document.getElementById('stat-est-1rm').textContent = Math.round(best1RM) + "kg";
-                document.getElementById('stat-max-weight').textContent = maxWeight + "kg";
-                const volStr = totalVolume > 1000 ? (totalVolume/1000).toFixed(1) + "k" : totalVolume;
-                document.getElementById('stat-total-volume').textContent = volStr;
-                document.getElementById('stat-total-reps').textContent = totalReps;
+                if (isCardio) {
+                    document.querySelector('#stat-max-weight').previousElementSibling.textContent = "Longest Time";
+                    document.getElementById('stat-max-weight').textContent = maxWeight + " mins";
+                    document.getElementById('stat-est-1rm').textContent = "-";
+                    document.getElementById('stat-total-volume').textContent = "-";
+                    document.getElementById('stat-total-reps').textContent = "-";
+                } else {
+                    document.querySelector('#stat-max-weight').previousElementSibling.textContent = "Heaviest Lift";
+                    document.getElementById('stat-est-1rm').textContent = Math.round(best1RM) + "kg";
+                    document.getElementById('stat-max-weight').textContent = maxWeight + "kg";
+                    const volStr = totalVolume > 1000 ? (totalVolume/1000).toFixed(1) + "k" : totalVolume;
+                    document.getElementById('stat-total-volume').textContent = volStr;
+                    document.getElementById('stat-total-reps').textContent = totalReps;
+                }
             }
         }
 
