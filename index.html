@@ -527,27 +527,51 @@
             if (!currentUser) return;
             const ref = getSettingsRef();
             const snap = await getDoc(ref);
-            let customExercises = [];
 
             if (snap.exists()) {
                 const data = snap.data();
-                if(data.list && data.list.length > 0) {
-                    // Use case-insensitive filtering to clear out any duplicate old entries (e.g. "bench press" vs "Bench Press")
-                    const lowerDefaults = orderedDefaults.map(e => e.toLowerCase());
-                    customExercises = data.list.filter(ex => !lowerDefaults.includes(ex.toLowerCase()));
-                    
-                    // Deduplicate custom exercises among themselves while maintaining order
-                    const seen = new Set(lowerDefaults);
-                    customExercises = customExercises.filter(ex => {
-                        const lower = ex.toLowerCase();
-                        if (seen.has(lower)) return false;
-                        seen.add(lower);
-                        return true;
-                    });
+                
+                // If they haven't been upgraded to version 2 of the list ordering:
+                if (data.listVersion !== 2) {
+                     // Upgrade path: Force the orderedDefaults, then append their unique custom ones
+                     const lowerDefaults = orderedDefaults.map(e => e.toLowerCase());
+                     let custom = (data.list || []).filter(ex => !lowerDefaults.includes(ex.toLowerCase()));
+                     
+                     // Deduplicate custom
+                     const seen = new Set(lowerDefaults);
+                     custom = custom.filter(ex => {
+                         const lower = ex.toLowerCase();
+                         if (seen.has(lower)) return false;
+                         seen.add(lower);
+                         return true;
+                     });
+                     
+                     availableExercises = [...orderedDefaults, ...custom];
+                } else {
+                     // Version 2 exists: Trust the user's saved order!
+                     let savedList = data.list || [];
+                     
+                     // Deduplicate saved list just in case
+                     const uniqueList = [];
+                     const seen = new Set();
+                     for (const ex of savedList) {
+                         const lower = ex.toLowerCase();
+                         if (!seen.has(lower)) {
+                             seen.add(lower);
+                             uniqueList.push(ex);
+                         }
+                     }
+                     
+                     // Append any completely missing defaults (in case we add new ones to code)
+                     const missingDefaults = orderedDefaults.filter(def => !seen.has(def.toLowerCase()));
+                     availableExercises = [...uniqueList, ...missingDefaults];
                 }
+            } else {
+                availableExercises = [...orderedDefaults];
             }
-            availableExercises = [...orderedDefaults, ...customExercises];
-            await setDoc(ref, { list: availableExercises }, { merge: true });
+            
+            // Save the list AND the version flag so we remember their custom order next time
+            await setDoc(ref, { list: availableExercises, listVersion: 2 }, { merge: true });
             updateExerciseDropdown();
         }
 
