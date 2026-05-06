@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>MD RepTrack - Minimalist Workout Log</title>
+    <title>RepTrack - Minimalist Workout Log</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -902,6 +902,10 @@
         });
 
         // --- 6. REALTIME LISTENERS & HISTORY ---
+        function getLocalDateId(dateObj = new Date()) {
+            return `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
+        }
+
         const setupRealtimeListeners = () => {
             if (!currentUser) return;
             unsubscribes.forEach(unsub => unsub()); unsubscribes = [];
@@ -920,8 +924,11 @@
             unsubscribes.push(onSnapshot(query(collection(db, 'users', currentUser.uid, 'sessions'), limit(30)), (snapshot) => {
                 sessionsCache = {};
                 snapshot.forEach(doc => sessionsCache[doc.id] = doc.data().name);
-                const todayId = new Date().toISOString().split('T')[0];
-                if (sessionsCache[todayId]) document.getElementById('today-session-name').value = sessionsCache[todayId];
+                const todayId = getLocalDateId();
+                const input = document.getElementById('today-session-name');
+                if (sessionsCache[todayId]) input.value = sessionsCache[todayId];
+                else input.value = '';
+                input.placeholder = todayId;
                 refreshHistoryView();
             }));
         };
@@ -931,12 +938,105 @@
             renderHistory(combined);
         }
 
+        function attachEditListeners(el, item, isTodayView = false) {
+            el.querySelector('.edit-log-btn').addEventListener('click', () => {
+                const isCardio = cardioExercises.includes(item.exercise);
+                const wDisplay = item.weight === 'BW' ? 'BW' : item.weight;
+                
+                if (item.type === 'workout') {
+                    el.innerHTML = `
+                        <div class="flex flex-col gap-3 w-full animate-fade-in py-1">
+                            <div class="font-semibold text-[#00E676] text-sm">${item.exercise}</div>
+                            ${isCardio ? `
+                                <div class="flex items-center gap-2">
+                                    <input type="number" id="edit-mins-${item.id}" value="${item.weight}" class="w-full bg-[#111] text-white p-3 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#333]" placeholder="Minutes">
+                                </div>
+                            ` : `
+                                <div class="flex items-center gap-2">
+                                    <div class="flex-1">
+                                        <label class="text-[9px] text-gray-500 uppercase px-1">Sets</label>
+                                        <input type="number" id="edit-sets-${item.id}" value="${item.setCount || 1}" class="w-full bg-[#111] text-white p-2.5 rounded-xl text-center focus:outline-none focus:ring-1 focus:ring-[#333]">
+                                    </div>
+                                    <div class="flex-1">
+                                        <label class="text-[9px] text-gray-500 uppercase px-1">Load</label>
+                                        <input type="text" id="edit-weight-${item.id}" value="${wDisplay}" class="w-full bg-[#111] text-white p-2.5 rounded-xl text-center focus:outline-none focus:ring-1 focus:ring-[#333]">
+                                    </div>
+                                    <div class="flex-1">
+                                        <label class="text-[9px] text-gray-500 uppercase px-1">Reps</label>
+                                        <input type="number" id="edit-reps-${item.id}" value="${item.reps}" class="w-full bg-[#111] text-white p-2.5 rounded-xl text-center focus:outline-none focus:ring-1 focus:ring-[#333]">
+                                    </div>
+                                </div>
+                            `}
+                            <div class="flex justify-between items-center mt-1 pt-2">
+                                <button class="delete-btn text-red-500/80 hover:text-red-500 text-xs font-bold px-2 py-1 transition"><i class="fa-solid fa-trash-can mr-1"></i> Delete</button>
+                                <div class="flex gap-2">
+                                    <button class="cancel-btn text-gray-400 text-xs font-bold px-3 py-2 rounded-lg hover:bg-[#111] transition">Cancel</button>
+                                    <button class="save-btn bg-[#00E676] text-black text-xs font-bold px-4 py-2 rounded-lg shadow-lg hover:opacity-90 transition">Save</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else if (item.type === 'bodyweight') {
+                    el.innerHTML = `
+                        <div class="flex flex-col gap-3 w-full animate-fade-in py-1">
+                            <div class="flex items-center gap-2 text-[#00E676]"><i class="fa-solid fa-weight-scale text-xs"></i><span class="font-semibold text-sm">Body Weight</span></div>
+                            <input type="number" id="edit-bw-${item.id}" value="${item.weight}" step="0.1" class="w-full bg-[#111] text-white p-3 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#333]" placeholder="kg">
+                            <div class="flex justify-between items-center mt-1 pt-2">
+                                <button class="delete-btn text-red-500/80 hover:text-red-500 text-xs font-bold px-2 py-1 transition"><i class="fa-solid fa-trash-can mr-1"></i> Delete</button>
+                                <div class="flex gap-2">
+                                    <button class="cancel-btn text-gray-400 text-xs font-bold px-3 py-2 rounded-lg hover:bg-[#111] transition">Cancel</button>
+                                    <button class="save-btn bg-[#00E676] text-black text-xs font-bold px-4 py-2 rounded-lg shadow-lg hover:opacity-90 transition">Save</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                el.querySelector('.cancel-btn').addEventListener('click', () => {
+                    if (isTodayView) renderToday(workoutsCache);
+                    else refreshHistoryView();
+                });
+
+                el.querySelector('.delete-btn').addEventListener('click', () => {
+                    deleteLog(item.id, item.type === 'workout' ? 'workouts' : 'bodyweight');
+                });
+
+                el.querySelector('.save-btn').addEventListener('click', async () => {
+                    try {
+                        let updateData = {};
+                        if (item.type === 'bodyweight') {
+                            const w = parseFloat(document.getElementById(`edit-bw-${item.id}`).value);
+                            if(isNaN(w) || w < 0) throw new Error();
+                            updateData = { weight: parseFloat(w.toFixed(1)) };
+                        } else if (isCardio) {
+                            const m = parseFloat(document.getElementById(`edit-mins-${item.id}`).value);
+                            if(isNaN(m) || m < 0) throw new Error();
+                            updateData = { weight: parseFloat(m.toFixed(1)) };
+                        } else {
+                            const s = parseInt(document.getElementById(`edit-sets-${item.id}`).value);
+                            const r = parseInt(document.getElementById(`edit-reps-${item.id}`).value);
+                            const wRaw = document.getElementById(`edit-weight-${item.id}`).value.trim().toUpperCase();
+                            const w = wRaw === 'BW' ? 'BW' : parseFloat(parseFloat(wRaw).toFixed(1));
+                            
+                            if(isNaN(s) || s < 1 || isNaN(r) || r < 0 || (w !== 'BW' && (isNaN(w) || w < 0))) throw new Error();
+                            updateData = { setCount: s, reps: r, weight: w };
+                        }
+                        
+                        await updateDoc(doc(db, 'users', currentUser.uid, item.type === 'workout' ? 'workouts' : 'bodyweight', item.id), updateData);
+                        window.showToast("Updated successfully");
+                    } catch(e) {
+                        window.showToast("Invalid values", true);
+                    }
+                });
+            });
+        }
+
         document.getElementById('today-session-name').addEventListener('change', async (e) => {
             if (!currentUser) return;
             const name = e.target.value.trim();
-            const todayId = new Date().toISOString().split('T')[0];
+            const todayId = getLocalDateId();
             const ref = doc(db, 'users', currentUser.uid, 'sessions', todayId);
-            if (name) await setDoc(ref, { name: name, dateId: todayId }, { merge: true });
+            if (name && name !== todayId) await setDoc(ref, { name: name, dateId: todayId }, { merge: true });
             else await deleteDoc(ref);
         });
 
@@ -954,7 +1054,7 @@
             items.forEach(item => {
                 const dateObj = item.timestamp ? item.timestamp.toDate() : new Date();
                 const dateStr = dateObj.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
-                const dateId = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
+                const dateId = getLocalDateId(dateObj);
                 if (!grouped[dateStr]) { grouped[dateStr] = []; dateIds[dateStr] = dateId; }
                 grouped[dateStr].push(item);
             });
@@ -962,6 +1062,7 @@
             container.innerHTML = '';
             Object.keys(grouped).forEach(dateStr => {
                 const dateId = dateIds[dateStr]; const sessionName = sessionsCache[dateId] || '';
+                const displaySessionName = sessionName || dateId;
                 
                 const dayContainer = document.createElement('div');
                 dayContainer.className = "mb-8";
@@ -974,17 +1075,17 @@
 
                 const nameContainer = document.createElement('div');
                 nameContainer.className = "flex items-center gap-2 group cursor-pointer mt-1";
-                nameContainer.innerHTML = `<span class="text-white text-lg font-bold">${sessionName || '<span class="text-gray-600 font-normal text-sm italic">Unnamed Session</span>'}</span><i class="fa-solid fa-pen text-gray-700 text-[10px] opacity-0 group-hover:opacity-100 transition"></i>`;
+                nameContainer.innerHTML = `<span class="text-white text-lg font-bold">${displaySessionName}</span><i class="fa-solid fa-pen text-gray-700 text-[10px] opacity-0 group-hover:opacity-100 transition ml-2"></i>`;
                 
                 nameContainer.addEventListener('click', () => {
                     const input = document.createElement('input');
-                    input.type = 'text'; input.value = sessionName; input.placeholder = "Session Name";
+                    input.type = 'text'; input.value = sessionName; input.placeholder = dateId;
                     input.className = "bg-transparent text-white text-lg font-bold focus:outline-none border-b border-[#333] w-full max-w-[200px]";
                     leftDiv.replaceChild(input, nameContainer); input.focus();
                     const save = async () => {
                         const val = input.value.trim();
                         if (val !== sessionName) {
-                            if (val) await setDoc(doc(db, 'users', currentUser.uid, 'sessions', dateId), { name: val, dateId: dateId }, { merge: true });
+                            if (val && val !== dateId) await setDoc(doc(db, 'users', currentUser.uid, 'sessions', dateId), { name: val, dateId: dateId }, { merge: true });
                             else await deleteDoc(doc(db, 'users', currentUser.uid, 'sessions', dateId));
                         }
                         leftDiv.replaceChild(nameContainer, input);
@@ -1004,19 +1105,25 @@
                         const isCardio = cardioExercises.includes(item.exercise);
                         const wDisplay = item.weight === 'BW' ? 'BW' : `${item.weight}kg`;
                         el.innerHTML = `
-                            <div>
+                            <div class="flex-1">
                                 <div class="font-semibold text-gray-200 text-sm">${item.exercise} <span class="text-[9px] text-gray-500 font-normal ml-1">${item.setCount > 1 ? item.setCount+' SETS' : ''}</span></div>
                                 <div class="text-xs text-gray-500 mt-0.5">${isCardio ? `${item.weight} mins` : `${wDisplay} × ${item.reps}`}</div>
                             </div>
-                            <div class="text-xs font-mono text-gray-600">${isCardio ? '<i class="fa-solid fa-stopwatch"></i>' : (item.weight==='BW'?'-':(item.weight*item.reps*(item.setCount||1)).toFixed(0))}</div>
+                            <div class="flex items-center gap-3">
+                                <div class="text-xs font-mono text-gray-600">${isCardio ? '<i class="fa-solid fa-stopwatch"></i>' : (item.weight==='BW'?'-':(item.weight*item.reps*(item.setCount||1)).toFixed(0))}</div>
+                                <button class="edit-log-btn text-gray-600 hover:text-[#00E676] transition p-2"><i class="fa-solid fa-pen"></i></button>
+                            </div>
                         `;
                     } else if (item.type === 'bodyweight') {
                         el.innerHTML = `
-                            <div class="flex items-center gap-2"><i class="fa-solid fa-weight-scale text-gray-500 text-xs"></i><span class="font-semibold text-gray-200 text-sm">Body Weight</span></div>
-                            <div class="font-bold text-white text-sm">${item.weight}kg</div>
+                            <div class="flex-1 flex items-center gap-2"><i class="fa-solid fa-weight-scale text-gray-500 text-xs"></i><span class="font-semibold text-gray-200 text-sm">Body Weight</span></div>
+                            <div class="flex items-center gap-3">
+                                <div class="font-bold text-white text-sm">${item.weight}kg</div>
+                                <button class="edit-log-btn text-gray-600 hover:text-[#00E676] transition p-2"><i class="fa-solid fa-pen"></i></button>
+                            </div>
                         `;
                     }
-                    el.addEventListener('dblclick', () => deleteLog(item.id, item.type === 'workout' ? 'workouts' : 'bodyweight'));
+                    attachEditListeners(el, item, false);
                     listContainer.appendChild(el);
                 });
                 dayContainer.appendChild(listContainer); container.appendChild(dayContainer);
@@ -1037,18 +1144,17 @@
                  const isCardio = cardioExercises.includes(w.exercise);
                  const wDisplay = w.weight === 'BW' ? 'BW' : `${w.weight}kg`;
                  
-                 const metricsDisplay = isCardio 
-                     ? `${w.weight} mins` 
-                     : `${wDisplay} x ${w.reps}`;
-
                  el.innerHTML = `
-                    <div>
+                    <div class="flex-1">
                         <div class="font-semibold text-gray-200 text-sm">${w.exercise} <span class="text-[9px] text-gray-500 font-normal ml-1">${(w.setCount||1) > 1 ? w.setCount+' SETS' : ''}</span></div>
                         <div class="text-xs text-gray-500 mt-0.5">${isCardio ? `${w.weight} mins` : `${w.weight === 'BW' ? 'BW' : w.weight+'kg'} × ${w.reps}`}</div>
                     </div>
-                    <button class="text-gray-700 hover:text-red-500 transition px-2 opacity-0 group-hover:opacity-100"><i class="fa-solid fa-times"></i></button>
+                    <div class="flex items-center gap-1">
+                        <button class="edit-log-btn text-gray-600 hover:text-[#00E676] transition p-2"><i class="fa-solid fa-pen"></i></button>
+                    </div>
                  `;
-                 el.querySelector('button').addEventListener('click', () => deleteLog(w.id, 'workouts'));
+                 
+                 attachEditListeners(el, w, true);
                  container.appendChild(el);
             });
         }
