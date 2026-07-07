@@ -386,6 +386,15 @@
             }, 3000);
         };
 
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
         // --- 1. CONFIGURATION ---
         const firebaseConfig = {
             apiKey: "AIzaSyCHuTKvBK0R6poomtYMVtbqiamKbsoHX6o",
@@ -944,26 +953,27 @@
                 const wDisplay = item.weight === 'BW' ? 'BW' : item.weight;
                 
                 if (item.type === 'workout') {
+                    const safeId = escapeHtml(item.id);
                     el.innerHTML = `
                         <div class="flex flex-col gap-3 w-full animate-fade-in py-1">
-                            <div class="font-semibold text-[#00E676] text-sm">${item.exercise}</div>
+                            <div class="font-semibold text-[#00E676] text-sm">${escapeHtml(item.exercise)}</div>
                             ${isCardio ? `
                                 <div class="flex items-center gap-2">
-                                    <input type="number" id="edit-mins-${item.id}" value="${item.weight}" class="w-full bg-[#111] text-white p-3 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#333]" placeholder="Minutes">
+                                    <input type="number" id="edit-mins-${safeId}" value="${escapeHtml(item.weight)}" class="w-full bg-[#111] text-white p-3 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#333]" placeholder="Minutes">
                                 </div>
                             ` : `
                                 <div class="flex items-center gap-2">
                                     <div class="flex-1">
                                         <label class="text-[9px] text-gray-500 uppercase px-1">Sets</label>
-                                        <input type="number" id="edit-sets-${item.id}" value="${item.setCount || 1}" class="w-full bg-[#111] text-white p-2.5 rounded-xl text-center focus:outline-none focus:ring-1 focus:ring-[#333]">
+                                        <input type="number" id="edit-sets-${safeId}" value="${escapeHtml(item.setCount || 1)}" class="w-full bg-[#111] text-white p-2.5 rounded-xl text-center focus:outline-none focus:ring-1 focus:ring-[#333]">
                                     </div>
                                     <div class="flex-1">
                                         <label class="text-[9px] text-gray-500 uppercase px-1">Load</label>
-                                        <input type="text" id="edit-weight-${item.id}" value="${wDisplay}" class="w-full bg-[#111] text-white p-2.5 rounded-xl text-center focus:outline-none focus:ring-1 focus:ring-[#333]">
+                                        <input type="text" id="edit-weight-${safeId}" value="${escapeHtml(wDisplay)}" class="w-full bg-[#111] text-white p-2.5 rounded-xl text-center focus:outline-none focus:ring-1 focus:ring-[#333]">
                                     </div>
                                     <div class="flex-1">
                                         <label class="text-[9px] text-gray-500 uppercase px-1">Reps</label>
-                                        <input type="number" id="edit-reps-${item.id}" value="${item.reps}" class="w-full bg-[#111] text-white p-2.5 rounded-xl text-center focus:outline-none focus:ring-1 focus:ring-[#333]">
+                                        <input type="number" id="edit-reps-${safeId}" value="${escapeHtml(item.reps)}" class="w-full bg-[#111] text-white p-2.5 rounded-xl text-center focus:outline-none focus:ring-1 focus:ring-[#333]">
                                     </div>
                                 </div>
                             `}
@@ -977,10 +987,11 @@
                         </div>
                     `;
                 } else if (item.type === 'bodyweight') {
+                    const safeId = escapeHtml(item.id);
                     el.innerHTML = `
                         <div class="flex flex-col gap-3 w-full animate-fade-in py-1">
                             <div class="flex items-center gap-2 text-[#00E676]"><i class="fa-solid fa-weight-scale text-xs"></i><span class="font-semibold text-sm">Body Weight</span></div>
-                            <input type="number" id="edit-bw-${item.id}" value="${item.weight}" step="0.1" class="w-full bg-[#111] text-white p-3 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#333]" placeholder="kg">
+                            <input type="number" id="edit-bw-${safeId}" value="${escapeHtml(item.weight)}" step="0.1" class="w-full bg-[#111] text-white p-3 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#333]" placeholder="kg">
                             <div class="flex justify-between items-center mt-1 pt-2">
                                 <button class="delete-btn text-red-500/80 hover:text-red-500 text-xs font-bold px-2 py-1 transition"><i class="fa-solid fa-trash-can mr-1"></i> Delete</button>
                                 <div class="flex gap-2">
@@ -1071,11 +1082,19 @@
                 dateHeader.className = "flex justify-between items-end border-b border-[#1a1a1a] pb-2 mb-2";
                 
                 const leftDiv = document.createElement('div');
-                leftDiv.innerHTML = `<span class="text-[10px] text-[#00E676] uppercase tracking-widest font-semibold">${dateStr}</span>`;
+                const dateSpan = document.createElement('span');
+                dateSpan.className = "text-[10px] text-[#00E676] uppercase tracking-widest font-semibold";
+                dateSpan.textContent = dateStr;
+                leftDiv.appendChild(dateSpan);
 
                 const nameContainer = document.createElement('div');
                 nameContainer.className = "flex items-center gap-2 group cursor-pointer mt-1";
-                nameContainer.innerHTML = `<span class="text-white text-lg font-bold">${displaySessionName}</span><i class="fa-solid fa-pen text-gray-700 text-[10px] opacity-0 group-hover:opacity-100 transition ml-2"></i>`;
+                const nameSpan = document.createElement('span');
+                nameSpan.className = "text-white text-lg font-bold";
+                nameSpan.textContent = displaySessionName;
+                const nameEditIcon = document.createElement('i');
+                nameEditIcon.className = "fa-solid fa-pen text-gray-700 text-[10px] opacity-0 group-hover:opacity-100 transition ml-2";
+                nameContainer.append(nameSpan, nameEditIcon);
                 
                 nameContainer.addEventListener('click', () => {
                     const input = document.createElement('input');
@@ -1094,7 +1113,10 @@
                 });
 
                 leftDiv.appendChild(nameContainer); dateHeader.appendChild(leftDiv);
-                dateHeader.innerHTML += `<span class="text-[10px] text-gray-500 font-mono">${grouped[dateStr].length} logs</span>`;
+                const countSpan = document.createElement('span');
+                countSpan.className = "text-[10px] text-gray-500 font-mono";
+                countSpan.textContent = `${grouped[dateStr].length} logs`;
+                dateHeader.appendChild(countSpan);
                 dayContainer.appendChild(dateHeader);
 
                 const listContainer = document.createElement('div');
@@ -1106,8 +1128,8 @@
                         const wDisplay = item.weight === 'BW' ? 'BW' : `${item.weight}kg`;
                         el.innerHTML = `
                             <div class="flex-1">
-                                <div class="font-semibold text-gray-200 text-sm">${item.exercise} <span class="text-[9px] text-gray-500 font-normal ml-1">${item.setCount > 1 ? item.setCount+' SETS' : ''}</span></div>
-                                <div class="text-xs text-gray-500 mt-0.5">${isCardio ? `${item.weight} mins` : `${wDisplay} × ${item.reps}`}</div>
+                                <div class="font-semibold text-gray-200 text-sm">${escapeHtml(item.exercise)} <span class="text-[9px] text-gray-500 font-normal ml-1">${item.setCount > 1 ? escapeHtml(item.setCount+' SETS') : ''}</span></div>
+                                <div class="text-xs text-gray-500 mt-0.5">${isCardio ? `${escapeHtml(item.weight)} mins` : `${escapeHtml(wDisplay)} × ${escapeHtml(item.reps)}`}</div>
                             </div>
                             <div class="flex items-center gap-3">
                                 <div class="text-xs font-mono text-gray-600">${isCardio ? '<i class="fa-solid fa-stopwatch"></i>' : (item.weight==='BW'?'-':(item.weight*item.reps*(item.setCount||1)).toFixed(0))}</div>
@@ -1118,7 +1140,7 @@
                         el.innerHTML = `
                             <div class="flex-1 flex items-center gap-2"><i class="fa-solid fa-weight-scale text-gray-500 text-xs"></i><span class="font-semibold text-gray-200 text-sm">Body Weight</span></div>
                             <div class="flex items-center gap-3">
-                                <div class="font-bold text-white text-sm">${item.weight}kg</div>
+                                <div class="font-bold text-white text-sm">${escapeHtml(item.weight)}kg</div>
                                 <button class="edit-log-btn text-gray-600 hover:text-[#00E676] transition p-2"><i class="fa-solid fa-pen"></i></button>
                             </div>
                         `;
@@ -1146,8 +1168,8 @@
                  
                  el.innerHTML = `
                     <div class="flex-1">
-                        <div class="font-semibold text-gray-200 text-sm">${w.exercise} <span class="text-[9px] text-gray-500 font-normal ml-1">${(w.setCount||1) > 1 ? w.setCount+' SETS' : ''}</span></div>
-                        <div class="text-xs text-gray-500 mt-0.5">${isCardio ? `${w.weight} mins` : `${w.weight === 'BW' ? 'BW' : w.weight+'kg'} × ${w.reps}`}</div>
+                        <div class="font-semibold text-gray-200 text-sm">${escapeHtml(w.exercise)} <span class="text-[9px] text-gray-500 font-normal ml-1">${(w.setCount||1) > 1 ? escapeHtml(w.setCount+' SETS') : ''}</span></div>
+                        <div class="text-xs text-gray-500 mt-0.5">${isCardio ? `${escapeHtml(w.weight)} mins` : `${escapeHtml(w.weight === 'BW' ? 'BW' : w.weight+'kg')} × ${escapeHtml(w.reps)}`}</div>
                     </div>
                     <div class="flex items-center gap-1">
                         <button class="edit-log-btn text-gray-600 hover:text-[#00E676] transition p-2"><i class="fa-solid fa-pen"></i></button>
@@ -1197,7 +1219,12 @@
             const currentSel = exerciseSelect.value || 'All';
             
             exerciseSelect.innerHTML = '<option value="All">Overview</option><option value="Body Weight">Body Weight</option>';
-            exercises.forEach(ex => exerciseSelect.innerHTML += `<option value="${ex}">${ex}</option>`);
+            exercises.forEach(ex => {
+                const opt = document.createElement('option');
+                opt.value = ex;
+                opt.textContent = ex;
+                exerciseSelect.appendChild(opt);
+            });
             exerciseSelect.value = (exercises.includes(currentSel) || currentSel === 'Body Weight') ? currentSel : 'All';
             renderChart(exerciseSelect.value);
         }
@@ -1312,7 +1339,18 @@
             bF2.className = s===2 ? "flex-1 py-2.5 text-xs tracking-wide font-semibold rounded-full bg-white text-black shadow-sm transition-all" : "flex-1 py-2.5 text-xs tracking-wide font-semibold rounded-full text-gray-500 hover:text-white transition-all";
             document.getElementById('flex-set-title').textContent = `Routine ${s}`;
             const l = document.getElementById('flex-list'); l.innerHTML = '';
-            fSets[s].forEach((ex, i) => l.innerHTML += `<div class="flex items-center gap-4 py-3 border-b border-[#111] last:border-0"><span class="text-gray-600 text-[10px] font-mono w-4">${i+1}</span><span class="text-sm font-medium text-gray-200">${ex}</span></div>`);
+            fSets[s].forEach((ex, i) => {
+                const row = document.createElement('div');
+                row.className = "flex items-center gap-4 py-3 border-b border-[#111] last:border-0";
+                const indexSpan = document.createElement('span');
+                indexSpan.className = "text-gray-600 text-[10px] font-mono w-4";
+                indexSpan.textContent = i + 1;
+                const nameSpan = document.createElement('span');
+                nameSpan.className = "text-sm font-medium text-gray-200";
+                nameSpan.textContent = ex;
+                row.append(indexSpan, nameSpan);
+                l.appendChild(row);
+            });
         }
         bF1.addEventListener('click',()=>rFlex(1)); bF2.addEventListener('click',()=>rFlex(2)); rFlex(1);
 
