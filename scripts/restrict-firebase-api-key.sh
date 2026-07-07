@@ -19,9 +19,11 @@ PROJECT_ID="md-reptrack"
 API_KEY_ID="" # Set to your Browser API key resource ID from Cloud Console (not the key string).
 
 REFERRERS=(
+  "https://marcmdion.github.io/*"
+  "https://marcmdion.github.io/reptrack"
+  "https://marcmdion.github.io/reptrack/*"
   "https://md-reptrack.firebaseapp.com/*"
   "https://md-reptrack.web.app/*"
-  "https://marcmdion.github.io/reptrack/*"
   "http://localhost/*"
   "http://127.0.0.1/*"
 )

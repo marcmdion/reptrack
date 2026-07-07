@@ -469,6 +469,17 @@
             authError.classList.remove('hidden');
         }
 
+        function getAuthErrorMessage(error, fallback) {
+            const code = error?.code || '';
+            if (code.includes('referer') || code.includes('blocked')) {
+                return "This site URL is not allowed for Firebase. Add it to your API key HTTP referrers in Google Cloud Console.";
+            }
+            if (code === 'auth/network-request-failed') {
+                return "Network error reaching Firebase. Check connection and API key restrictions.";
+            }
+            return fallback;
+        }
+
         function toggleAuthLoading(isLoading) {
             if(isLoading) {
                 authLoading.classList.remove('hidden');
@@ -486,7 +497,8 @@
             toggleAuthLoading(true);
             try { await signInWithEmailAndPassword(auth, email, password); } 
             catch (error) {
-                showAuthError("Invalid credentials."); toggleAuthLoading(false);
+                console.error('Login failed:', error);
+                showAuthError(getAuthErrorMessage(error, "Invalid credentials.")); toggleAuthLoading(false);
             }
         });
 
@@ -497,7 +509,8 @@
             toggleAuthLoading(true);
             try { await createUserWithEmailAndPassword(auth, email, password); } 
             catch (error) {
-                showAuthError("Registration failed."); toggleAuthLoading(false);
+                console.error('Registration failed:', error);
+                showAuthError(getAuthErrorMessage(error, "Registration failed.")); toggleAuthLoading(false);
             }
         });
 
