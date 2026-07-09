@@ -2,7 +2,36 @@ import { collection, addDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase.js';
 import { cardioExercises } from '../lib/constants.js';
 import { state } from '../lib/state.js';
-import { showToast } from '../lib/utils.js';
+import { getLocalDateId, showToast } from '../lib/utils.js';
+
+function syncDateWarningBanner() {
+  const dateInput = document.getElementById('input-date');
+  const banner = document.getElementById('date-warning-banner');
+  const bannerText = document.getElementById('date-warning-text');
+  if (!dateInput || !banner || !bannerText) return;
+
+  const todayId = getLocalDateId();
+  const selectedId = dateInput.value;
+
+  if (!selectedId || selectedId === todayId) {
+    banner.classList.add('hidden');
+    return;
+  }
+
+  const [y, m, d] = selectedId.split('-').map(Number);
+  const selectedDate = new Date(y, m - 1, d);
+  const formatted = selectedDate.toLocaleDateString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+  const isPast = selectedId < todayId;
+  bannerText.textContent = isPast
+    ? `Logging to a past date: ${formatted}`
+    : `Logging to a future date: ${formatted}`;
+  banner.classList.remove('hidden');
+}
 
 export function initLogging() {
   const repSelect = document.getElementById('input-reps');
@@ -23,6 +52,7 @@ export function initLogging() {
     const containerWeight = document.getElementById('container-weight');
     const containerReps = document.getElementById('container-reps');
     const labelWeight = document.getElementById('label-weight');
+    const bwHint = document.getElementById('bw-hint');
 
     if (isCardio) {
       containerSets.style.display = 'none';
@@ -31,6 +61,7 @@ export function initLogging() {
       labelWeight.textContent = 'Minutes';
       document.getElementById('input-weight').placeholder = 'e.g. 30';
       document.getElementById('input-reps').removeAttribute('required');
+      bwHint?.classList.add('hidden');
     } else {
       containerSets.style.display = 'block';
       containerReps.style.display = 'block';
@@ -38,6 +69,7 @@ export function initLogging() {
       labelWeight.textContent = 'Load (kg/BW)';
       document.getElementById('input-weight').placeholder = 'kg / BW';
       document.getElementById('input-reps').setAttribute('required', 'true');
+      bwHint?.classList.remove('hidden');
     }
 
     const lastLog = state.workoutsCache.find((w) => w.exercise === selectedExercise);
@@ -92,6 +124,17 @@ export function initLogging() {
     }
     if (val && !isNaN(val)) e.target.value = parseFloat(val).toFixed(1);
   });
+
+  document.getElementById('bw-chip')?.addEventListener('click', () => {
+    const weightInput = document.getElementById('input-weight');
+    weightInput.value = 'BW';
+    weightInput.focus();
+  });
+
+  const dateInput = document.getElementById('input-date');
+  if (dateInput && !dateInput.value) dateInput.value = getLocalDateId();
+  dateInput?.addEventListener('change', syncDateWarningBanner);
+  syncDateWarningBanner();
 
   document.getElementById('log-form').addEventListener('submit', async (e) => {
     e.preventDefault();
