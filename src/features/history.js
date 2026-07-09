@@ -1,9 +1,10 @@
-import { doc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
 import { cardioExercises } from '../lib/constants.js';
 import { db } from '../lib/firebase.js';
 import { state } from '../lib/state.js';
 import { escapeHtml, getLocalDateId, showToast } from '../lib/utils.js';
 import { deleteLog, refreshHistoryView } from './listeners.js';
+import { saveSessionName } from './sessions.js';
 
 export function attachEditListeners(el, item, isTodayView = false) {
   el.querySelector('.edit-log-btn').addEventListener('click', () => {
@@ -115,23 +116,27 @@ export function renderHistory(items) {
   }
 
   const grouped = {};
-  const dateIds = {};
   items.forEach((item) => {
     const dateObj = item.timestamp ? item.timestamp.toDate() : new Date();
-    const dateStr = dateObj.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
     const dateId = getLocalDateId(dateObj);
-    if (!grouped[dateStr]) {
-      grouped[dateStr] = [];
-      dateIds[dateStr] = dateId;
-    }
-    grouped[dateStr].push(item);
+    if (!grouped[dateId]) grouped[dateId] = [];
+    grouped[dateId].push(item);
   });
 
   container.innerHTML = '';
-  Object.keys(grouped).forEach((dateStr) => {
-    const dateId = dateIds[dateStr];
-    const sessionName = state.sessionsCache[dateId] || '';
-    const displaySessionName = sessionName || dateId;
+  Object.keys(grouped)
+    .sort()
+    .reverse()
+    .forEach((dateId) => {
+      const dateObj = grouped[dateId][0].timestamp ? grouped[dateId][0].timestamp.toDate() : new Date();
+      const dateStr = dateObj.toLocaleDateString(undefined, {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+      const sessionName = state.sessionsCache[dateId] || '';
+      const displaySessionName = sessionName || dateStr;
 
     const dayContainer = document.createElement('div');
     dayContainer.className = 'mb-8';
@@ -158,20 +163,30 @@ export function renderHistory(items) {
       const input = document.createElement('input');
       input.type = 'text';
       input.value = sessionName;
-      input.placeholder = dateId;
+      input.placeholder = 'Name this session...';
       input.className =
         'bg-transparent text-white text-lg font-bold focus:outline-none border-b border-[#333] w-full max-w-[200px]';
       leftDiv.replaceChild(input, nameContainer);
       input.focus();
+
+      let saving = false;
       const save = async () => {
+        if (saving) return;
+        saving = true;
         const val = input.value.trim();
-        if (val !== sessionName) {
-          if (val && val !== dateId)
-            await setDoc(doc(db, 'users', state.currentUser.uid, 'sessions', dateId), { name: val, dateId }, { merge: true });
-          else await deleteDoc(doc(db, 'users', state.currentUser.uid, 'sessions', dateId));
+        try {
+          if (val !== sessionName) {
+            await saveSessionName(dateId, val);
+            showToast('Session renamed');
+          }
+        } catch {
+          showToast('Error saving session name', true);
+        } finally {
+          saving = false;
+          refreshHistoryView();
         }
-        leftDiv.replaceChild(nameContainer, input);
       };
+
       input.addEventListener('blur', save);
       input.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') input.blur();
@@ -182,12 +197,12 @@ export function renderHistory(items) {
     dateHeader.appendChild(leftDiv);
     const countSpan = document.createElement('span');
     countSpan.className = 'text-[10px] text-gray-500 font-mono';
-    countSpan.textContent = `${grouped[dateStr].length} logs`;
+    countSpan.textContent = `${grouped[dateId].length} logs`;
     dateHeader.appendChild(countSpan);
     dayContainer.appendChild(dateHeader);
 
     const listContainer = document.createElement('div');
-    grouped[dateStr].forEach((item) => {
+    grouped[dateId].forEach((item) => {
       const el = document.createElement('div');
       el.className =
         'flex justify-between items-center py-3 border-b border-[#111] last:border-0 group transition-colors';

@@ -1,18 +1,18 @@
 import {
   collection,
-  doc,
   deleteDoc,
+  doc,
   onSnapshot,
   query,
   orderBy,
   limit,
-  setDoc,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase.js';
 import { state } from '../lib/state.js';
 import { getLocalDateId, showToast } from '../lib/utils.js';
 import { updateChartData } from './chart.js';
 import { renderHistory, renderToday } from './history.js';
+import { saveSessionName, syncSessionNameInput, getSelectedLogDateId } from './sessions.js';
 
 export function setupRealtimeListeners() {
   if (!state.currentUser) return;
@@ -44,16 +44,12 @@ export function setupRealtimeListeners() {
   );
 
   state.unsubscribes.push(
-    onSnapshot(query(collection(db, 'users', state.currentUser.uid, 'sessions'), limit(30)), (snapshot) => {
+    onSnapshot(collection(db, 'users', state.currentUser.uid, 'sessions'), (snapshot) => {
       state.sessionsCache = {};
       snapshot.forEach((d) => {
         state.sessionsCache[d.id] = d.data().name;
       });
-      const todayId = getLocalDateId();
-      const input = document.getElementById('today-session-name');
-      if (state.sessionsCache[todayId]) input.value = state.sessionsCache[todayId];
-      else input.value = '';
-      input.placeholder = todayId;
+      syncSessionNameInput();
       refreshHistoryView();
     }),
   );
@@ -76,12 +72,19 @@ export async function deleteLog(id, collectionName) {
 }
 
 export function initSessionNameListener() {
-  document.getElementById('today-session-name').addEventListener('change', async (e) => {
+  const input = document.getElementById('today-session-name');
+  const dateInput = document.getElementById('input-date');
+
+  const persist = async () => {
     if (!state.currentUser) return;
-    const name = e.target.value.trim();
-    const todayId = getLocalDateId();
-    const ref = doc(db, 'users', state.currentUser.uid, 'sessions', todayId);
-    if (name && name !== todayId) await setDoc(ref, { name, dateId: todayId }, { merge: true });
-    else await deleteDoc(ref);
-  });
+    try {
+      await saveSessionName(getSelectedLogDateId(), input.value);
+    } catch {
+      showToast('Error saving session name', true);
+    }
+  };
+
+  input.addEventListener('change', persist);
+  input.addEventListener('blur', persist);
+  dateInput?.addEventListener('change', syncSessionNameInput);
 }
