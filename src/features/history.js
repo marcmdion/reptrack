@@ -72,6 +72,11 @@ export function attachEditListeners(el, item, isTodayView = false) {
     });
 
     el.querySelector('.delete-btn').addEventListener('click', () => {
+      const label =
+        item.type === 'workout'
+          ? item.exercise
+          : 'this body weight entry';
+      if (!window.confirm(`Delete ${label}? This cannot be undone.`)) return;
       deleteLog(item.id, item.type === 'workout' ? 'workouts' : 'bodyweight');
     });
 
