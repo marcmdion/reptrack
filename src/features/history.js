@@ -3,8 +3,9 @@ import { cardioExercises } from '../lib/constants.js';
 import { db } from '../lib/firebase.js';
 import { state } from '../lib/state.js';
 import { escapeHtml, getLocalDateId, showToast } from '../lib/utils.js';
+import { confirmDialog } from '../lib/confirm.js';
 import { deleteLog, refreshHistoryView } from './listeners.js';
-import { saveSessionName } from './sessions.js';
+import { getSelectedLogDateId, saveSessionName } from './sessions.js';
 
 export function attachEditListeners(el, item, isTodayView = false) {
   el.querySelector('.edit-log-btn').addEventListener('click', () => {
@@ -67,16 +68,22 @@ export function attachEditListeners(el, item, isTodayView = false) {
     }
 
     el.querySelector('.cancel-btn').addEventListener('click', () => {
-      if (isTodayView) renderToday(state.workoutsCache);
+      if (isTodayView) renderSessionLogs(state.workoutsCache);
       else refreshHistoryView();
     });
 
-    el.querySelector('.delete-btn').addEventListener('click', () => {
+    el.querySelector('.delete-btn').addEventListener('click', async () => {
       const label =
         item.type === 'workout'
           ? item.exercise
           : 'this body weight entry';
-      if (!window.confirm(`Delete ${label}? This cannot be undone.`)) return;
+      const confirmed = await confirmDialog({
+        title: 'Delete log?',
+        message: `Delete ${label}? This cannot be undone.`,
+        confirmLabel: 'Delete',
+        danger: true,
+      });
+      if (!confirmed) return;
       deleteLog(item.id, item.type === 'workout' ? 'workouts' : 'bodyweight');
     });
 
@@ -241,18 +248,21 @@ export function renderHistory(items) {
   });
 }
 
-export function renderToday(workouts) {
+export function renderSessionLogs(workouts) {
   const container = document.getElementById('today-list');
-  const todayStr = new Date().toLocaleDateString();
-  const todayWorkouts = workouts.filter((w) => w.timestamp && w.timestamp.toDate().toLocaleDateString() === todayStr);
+  const dateId = getSelectedLogDateId();
+  const sessionWorkouts = workouts.filter((w) => {
+    if (!w.timestamp) return false;
+    return getLocalDateId(w.timestamp.toDate()) === dateId;
+  });
 
-  if (todayWorkouts.length === 0) {
-    container.innerHTML = '<div class="text-gray-600 text-xs tracking-wide">Ready to work.</div>';
+  if (sessionWorkouts.length === 0) {
+    container.innerHTML = '<div class="text-gray-600 text-xs tracking-wide">No logs for this session yet.</div>';
     return;
   }
 
   container.innerHTML = '';
-  todayWorkouts.forEach((w) => {
+  sessionWorkouts.forEach((w) => {
     const el = document.createElement('div');
     el.className = 'flex justify-between items-center py-3 border-b border-[#111] last:border-0 group';
     const isCardio = cardioExercises.includes(w.exercise);

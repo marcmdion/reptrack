@@ -2,7 +2,7 @@ import { collection, addDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase.js';
 import { cardioExercises } from '../lib/constants.js';
 import { state } from '../lib/state.js';
-import { getLocalDateId, showToast } from '../lib/utils.js';
+import { getLocalDateId, setButtonLoading, showToast } from '../lib/utils.js';
 
 function syncDateWarningBanner() {
   const dateInput = document.getElementById('input-date');
@@ -136,6 +136,8 @@ export function initLogging() {
   dateInput?.addEventListener('change', syncDateWarningBanner);
   syncDateWarningBanner();
 
+  const submitBtn = document.getElementById('log-submit-btn');
+
   document.getElementById('log-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!state.currentUser) return;
@@ -159,9 +161,11 @@ export function initLogging() {
     }
     document.getElementById('input-weight').value = formattedWeight === 'BW' ? 'BW' : formattedWeight.toFixed(1);
 
+    setButtonLoading(submitBtn, true, 'Saving...');
+
     try {
-      const dateInput = document.getElementById('input-date');
-      const [y, m, d] = dateInput.value.split('-').map(Number);
+      const dateInputEl = document.getElementById('input-date');
+      const [y, m, d] = dateInputEl.value.split('-').map(Number);
       const logDate = new Date(y, m - 1, d, 12, 0, 0);
 
       await addDoc(collection(db, 'users', state.currentUser.uid, 'workouts'), {
@@ -178,7 +182,7 @@ export function initLogging() {
         : `Logged: ${exercise} (${numSets > 1 ? `${numSets} Sets` : 'Set'} - ${formattedWeight === 'BW' ? 'BW' : `${formattedWeight}kg`} x ${reps})`;
       showToast(
         toastMsg +
-          (dateInput.value === new Date().toISOString().split('T')[0] ? '' : ` on ${logDate.toLocaleDateString()}`),
+          (dateInputEl.value === getLocalDateId() ? '' : ` on ${logDate.toLocaleDateString()}`),
       );
 
       if (!isCardio) {
@@ -190,6 +194,8 @@ export function initLogging() {
       document.getElementById('log-recent-history').innerHTML = '';
     } catch {
       showToast('Error saving workout', true);
+    } finally {
+      setButtonLoading(submitBtn, false);
     }
   });
 }
