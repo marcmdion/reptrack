@@ -3,11 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="description" content="Minimalist workout tracking — log lifts, body weight, and mobility.">
+    <meta name="theme-color" content="#000000">
     <title>MD RepTrack - Minimalist Workout Log</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <script type="module" crossorigin src="/reptrack/assets/index-BKcXWtK0.js"></script>
-  <link rel="stylesheet" crossorigin href="/reptrack/assets/index-Sm6gUoAo.css">
-</head>
+  <script type="module" crossorigin src="/reptrack/assets/index-DKZG23mq.js"></script>
+  <link rel="stylesheet" crossorigin href="/reptrack/assets/index-BKcODyiV.css">
+<link rel="manifest" href="/reptrack/manifest.webmanifest"></head>
 <body class="bg-[var(--bg-deep)] text-[var(--text-main)] min-h-screen selection:bg-[#333]">
 
     <header class="fixed top-0 left-0 right-0 z-50 h-16 pt-safe flex justify-between items-center px-6 bg-black/80 backdrop-blur-lg border-b border-[#111]">
@@ -43,6 +45,9 @@
             <button id="register-btn" class="w-full p-4 rounded-full bg-transparent text-gray-400 text-sm hover:text-white transition">
                 Create Account
             </button>
+            <button id="forgot-password-btn" type="button" class="w-full p-2 text-[10px] text-gray-500 hover:text-white uppercase tracking-widest transition">
+                Forgot password?
+            </button>
         </div>
 
         <div id="auth-loading" class="hidden mt-6">
@@ -50,6 +55,17 @@
         </div>
     </div>
     
+    <div id="confirm-modal" class="fixed inset-0 z-[70] hidden flex items-center justify-center modal-bg p-4">
+        <div class="bg-[#0a0a0a] w-full max-w-sm rounded-[24px] p-6 border border-[#1a1a1a] shadow-2xl animate-fade-in">
+            <h3 id="confirm-modal-title" class="text-lg font-bold text-white mb-2">Confirm</h3>
+            <p id="confirm-modal-message" class="text-sm text-gray-400 mb-6"></p>
+            <div class="flex gap-3">
+                <button type="button" id="confirm-modal-cancel" class="flex-1 p-3 rounded-xl text-sm font-semibold bg-[#111] text-gray-300 hover:text-white transition">Cancel</button>
+                <button type="button" id="confirm-modal-confirm" class="flex-1 p-3 rounded-xl text-sm font-bold transition">Confirm</button>
+            </div>
+        </div>
+    </div>
+
     <div id="exercise-modal" class="fixed inset-0 z-[60] hidden flex items-center justify-center modal-bg p-4 animate-fade-in">
         <div class="bg-[#0a0a0a] w-full max-w-sm rounded-[24px] p-6 border border-[#1a1a1a] shadow-2xl relative flex flex-col max-h-[80vh]">
             <button id="close-modal-btn" class="absolute top-6 right-6 text-gray-500 hover:text-white">
@@ -83,36 +99,54 @@
                     <span id="date-warning-text">Logging to a different date</span>
                 </div>
 
-                <div class="bg-[#0a0a0a] border border-[#1a1a1a] p-4 rounded-3xl flex flex-col gap-4">
-                    <div class="flex justify-between items-center w-full">
-                        <h2 class="text-[10px] text-gray-500 uppercase tracking-widest font-semibold">Rest Timer</h2>
-                        <div id="timer-display" class="text-xl font-mono text-gray-400 transition-colors duration-300">00:00</div>
-                    </div>
-                    <div class="flex justify-between gap-2">
-                        <button type="button" class="timer-btn flex-1 bg-[#111] hover:bg-[#222] text-gray-400 text-xs py-2.5 rounded-full transition-colors font-medium" data-time="30">30s</button>
-                        <button type="button" class="timer-btn flex-1 bg-[#111] hover:bg-[#222] text-gray-400 text-xs py-2.5 rounded-full transition-colors font-medium" data-time="60">60s</button>
-                        <button type="button" class="timer-btn flex-1 bg-[#111] hover:bg-[#222] text-gray-400 text-xs py-2.5 rounded-full transition-colors font-medium" data-time="90">90s</button>
-                        <button type="button" class="timer-btn flex-1 bg-[#111] hover:bg-[#222] text-gray-400 text-xs py-2.5 rounded-full transition-colors font-medium" data-time="120">120s</button>
-                        <button type="button" id="timer-cancel" class="hidden flex-1 bg-red-500/10 text-red-500 text-xs py-2.5 rounded-full transition-colors font-medium" title="Cancel Timer">Stop</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="bg-[#0a0a0a] border border-[#1a1a1a] p-4 rounded-3xl flex items-center justify-between">
-                <div>
-                    <h2 class="text-[10px] text-gray-500 uppercase tracking-widest font-semibold">Body Weight</h2>
-                    <div class="text-white text-sm font-medium mt-1" id="last-bw-display">Not logged</div>
-                </div>
-                <div class="flex items-center gap-2">
-                    <input type="number" id="input-bodyweight" placeholder="0.0" step="0.1" min="0" 
-                        class="bg-[#111] w-20 p-3 rounded-xl text-center text-sm font-semibold focus:outline-none focus:ring-1 focus:ring-[#333] text-white disabled:opacity-50">
-                    <button id="btn-save-bw" class="bg-white text-black p-3 rounded-xl transition-colors hover:bg-gray-200">
-                        <i class="fa-solid fa-check text-xs"></i>
+                <section class="collapsible-section bg-[#0a0a0a] border border-[#1a1a1a] rounded-3xl" data-collapsible="timer" data-default-expanded="true">
+                    <button type="button" class="collapsible-header w-full flex justify-between items-center p-4 text-left" aria-expanded="true">
+                        <span class="text-[10px] text-gray-500 uppercase tracking-widest font-semibold">Rest Timer</span>
+                        <div class="flex items-center gap-3">
+                            <div id="timer-display" class="text-xl font-mono text-gray-400 transition-colors duration-300">00:00</div>
+                            <i class="fa-solid fa-chevron-down text-gray-600 text-xs collapsible-chevron transition-transform"></i>
+                        </div>
                     </button>
-                </div>
+                    <div class="collapsible-body px-4 pb-4">
+                        <div class="flex justify-between gap-2">
+                            <button type="button" class="timer-btn flex-1 bg-[#111] hover:bg-[#222] text-gray-400 text-xs py-2.5 rounded-full transition-colors font-medium" data-time="30">30s</button>
+                            <button type="button" class="timer-btn flex-1 bg-[#111] hover:bg-[#222] text-gray-400 text-xs py-2.5 rounded-full transition-colors font-medium" data-time="60">60s</button>
+                            <button type="button" class="timer-btn flex-1 bg-[#111] hover:bg-[#222] text-gray-400 text-xs py-2.5 rounded-full transition-colors font-medium" data-time="90">90s</button>
+                            <button type="button" class="timer-btn flex-1 bg-[#111] hover:bg-[#222] text-gray-400 text-xs py-2.5 rounded-full transition-colors font-medium" data-time="120">120s</button>
+                            <button type="button" id="timer-cancel" class="hidden flex-1 bg-red-500/10 text-red-500 text-xs py-2.5 rounded-full transition-colors font-medium" title="Cancel Timer">Stop</button>
+                        </div>
+                    </div>
+                </section>
             </div>
 
-            <div class="animate-fade-in">
+            <section class="collapsible-section bg-[#0a0a0a] border border-[#1a1a1a] rounded-3xl" data-collapsible="bodyweight" data-default-expanded="true">
+                <button type="button" class="collapsible-header w-full flex justify-between items-center p-4 text-left" aria-expanded="true">
+                    <span class="text-[10px] text-gray-500 uppercase tracking-widest font-semibold">Body Weight</span>
+                    <i class="fa-solid fa-chevron-down text-gray-600 text-xs collapsible-chevron transition-transform"></i>
+                </button>
+                <div class="collapsible-body px-4 pb-4">
+                    <div class="flex items-center justify-between gap-4">
+                        <div>
+                            <div id="bw-status-label" class="text-[9px] text-gray-500 uppercase tracking-widest font-semibold">Not logged today</div>
+                            <div class="text-white text-sm font-medium mt-1" id="last-bw-display">—</div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <input type="number" id="input-bodyweight" placeholder="kg" step="0.1" min="0" 
+                                class="bg-[#111] w-20 p-3 rounded-xl text-center text-sm font-semibold focus:outline-none focus:ring-1 focus:ring-[#333] text-white disabled:opacity-50">
+                            <button id="btn-save-bw" class="bg-white text-black p-3 rounded-xl transition-colors hover:bg-gray-200" title="Save body weight">
+                                <i class="fa-solid fa-check text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="collapsible-section animate-fade-in" data-collapsible="log-form" data-default-expanded="true">
+                <button type="button" class="collapsible-header w-full flex justify-between items-center py-2 text-left" aria-expanded="true">
+                    <span class="text-[10px] text-gray-500 uppercase tracking-widest font-semibold">Log Exercise</span>
+                    <i class="fa-solid fa-chevron-down text-gray-600 text-xs collapsible-chevron transition-transform"></i>
+                </button>
+                <div class="collapsible-body">
                 <form id="log-form" class="space-y-5">
                     <div>
                         <div class="flex justify-between items-center mb-2">
@@ -130,6 +164,8 @@
                             </div>
                         </div>
                         
+                        <div id="recent-exercise-chips" class="hidden flex flex-wrap items-center gap-2 mt-2"></div>
+
                         <div class="flex justify-between items-start mt-2 ml-1 px-1">
                             <div id="log-advice-1rm" class="text-[10px] text-[#00E676] font-mono font-semibold h-4"></div>
                         </div>
@@ -168,13 +204,19 @@
                         </div>
                     </div>
 
-                    <button type="submit" class="btn-primary w-full p-4 rounded-full text-sm mt-4 tracking-wide shadow-lg">
+                    <button type="submit" id="log-submit-btn" class="btn-primary w-full p-4 rounded-full text-sm mt-4 tracking-wide shadow-lg flex items-center justify-center">
                         Save Log
                     </button>
                 </form>
-            </div>
+                </div>
+            </section>
 
-            <div class="pt-6">
+            <section class="collapsible-section pt-2" data-collapsible="session-logs" data-default-expanded="true">
+                <button type="button" class="collapsible-header w-full flex justify-between items-center py-2 text-left" aria-expanded="true">
+                    <span class="text-[10px] text-gray-500 uppercase tracking-widest font-semibold">Session Logs</span>
+                    <i class="fa-solid fa-chevron-down text-gray-600 text-xs collapsible-chevron transition-transform"></i>
+                </button>
+                <div class="collapsible-body">
                 <div class="mb-6 relative">
                     <input type="text" id="today-session-name" placeholder="Name this session..." 
                         class="w-full bg-transparent text-xl font-bold text-white placeholder-gray-700 focus:outline-none pb-2 border-b border-[#222] focus:border-white transition-colors">
@@ -183,7 +225,8 @@
                 <div id="today-list" class="space-y-0">
                     <div class="text-center py-8 text-gray-600 text-xs tracking-wide">Ready to work.</div>
                 </div>
-            </div>
+                </div>
+            </section>
         </div>
 
         <div id="view-history" class="view-section hidden max-w-md mx-auto">
@@ -210,6 +253,11 @@
                 
                 <div class="relative h-80 w-full">
                     <canvas id="progressChart"></canvas>
+                    <div id="chart-empty-state" class="hidden absolute inset-0 flex flex-col items-center justify-center text-center px-6 bg-[#0a0a0a] rounded-2xl">
+                        <i class="fa-solid fa-chart-line text-2xl text-gray-600 mb-3"></i>
+                        <p class="text-sm text-gray-400 font-medium">No data yet</p>
+                        <p class="text-xs text-gray-600 mt-1">Log workouts to see your progress chart.</p>
+                    </div>
                 </div>
             </div>
 
