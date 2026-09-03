@@ -11,4 +11,5 @@ export const state = {
   sessionsCache: {},
   todayBWDocId: null,
   allWorkoutsCache: [],
+  chartDefaultApplied: false,
 };

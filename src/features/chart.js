@@ -64,7 +64,7 @@ export function updateChartData(workouts) {
   state.allWorkoutsCache = workouts;
   const exercises = [...new Set(workouts.map((w) => w.exercise))].sort();
   const exerciseSelect = document.getElementById('chart-exercise-select');
-  const currentSel = exerciseSelect.value || 'All';
+  const previousSel = exerciseSelect.value;
 
   exerciseSelect.innerHTML = '<option value="All">Overview</option><option value="Body Weight">Body Weight</option>';
   exercises.forEach((ex) => {
@@ -73,12 +73,22 @@ export function updateChartData(workouts) {
     opt.textContent = ex;
     exerciseSelect.appendChild(opt);
   });
-  exerciseSelect.value = exercises.includes(currentSel) || currentSel === 'Body Weight' ? currentSel : 'All';
+
+  if (previousSel && (previousSel === 'All' || previousSel === 'Body Weight' || exercises.includes(previousSel))) {
+    exerciseSelect.value = previousSel;
+  } else if (!state.chartDefaultApplied && workouts.length > 0) {
+    exerciseSelect.value = workouts[0].exercise;
+    state.chartDefaultApplied = true;
+  } else {
+    exerciseSelect.value = 'All';
+  }
+
   renderChart(exerciseSelect.value);
 }
 
 export function renderChart(targetExercise) {
   if (!state.chartInstance) return;
+  const emptyState = document.getElementById('chart-empty-state');
   const relData =
     targetExercise === 'All'
       ? [...state.allWorkoutsCache, ...state.bodyweightCache]
@@ -90,11 +100,14 @@ export function renderChart(targetExercise) {
     state.chartInstance.data.labels = [];
     state.chartInstance.data.datasets = [];
     state.chartInstance.update();
+    emptyState?.classList.remove('hidden');
     ['stat-est-1rm', 'stat-max-weight', 'stat-total-volume', 'stat-total-reps'].forEach(
       (id) => (document.getElementById(id).textContent = '-'),
     );
     return;
   }
+
+  emptyState?.classList.add('hidden');
 
   const dateMap = new Map();
   relData.forEach((item) => {

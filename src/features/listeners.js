@@ -5,14 +5,14 @@ import {
   onSnapshot,
   query,
   orderBy,
-  limit,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase.js';
 import { state } from '../lib/state.js';
-import { getLocalDateId, showToast } from '../lib/utils.js';
+import { showToast } from '../lib/utils.js';
 import { updateChartData } from './chart.js';
-import { renderHistory, renderToday } from './history.js';
+import { renderHistory, renderSessionLogs } from './history.js';
 import { saveSessionName, syncSessionNameInput, getSelectedLogDateId } from './sessions.js';
+import { updateRecentExerciseChips } from './recent-exercises.js';
 
 export function setupRealtimeListeners() {
   if (!state.currentUser) return;
@@ -21,11 +21,12 @@ export function setupRealtimeListeners() {
 
   state.unsubscribes.push(
     onSnapshot(
-      query(collection(db, 'users', state.currentUser.uid, 'workouts'), orderBy('timestamp', 'desc'), limit(100)),
+      query(collection(db, 'users', state.currentUser.uid, 'workouts'), orderBy('timestamp', 'desc')),
       (snapshot) => {
         state.workoutsCache = snapshot.docs.map((d) => ({ id: d.id, type: 'workout', ...d.data() }));
         refreshHistoryView();
-        renderToday(state.workoutsCache);
+        renderSessionLogs(state.workoutsCache);
+        updateRecentExerciseChips();
         updateChartData(state.workoutsCache);
         if (document.getElementById('input-exercise').value)
           document.getElementById('input-exercise').dispatchEvent(new Event('change'));
@@ -35,7 +36,7 @@ export function setupRealtimeListeners() {
 
   state.unsubscribes.push(
     onSnapshot(
-      query(collection(db, 'users', state.currentUser.uid, 'bodyweight'), orderBy('timestamp', 'desc'), limit(20)),
+      query(collection(db, 'users', state.currentUser.uid, 'bodyweight'), orderBy('timestamp', 'desc')),
       (snapshot) => {
         state.bodyweightCache = snapshot.docs.map((d) => ({ id: d.id, type: 'bodyweight', ...d.data() }));
         refreshHistoryView();
@@ -86,5 +87,8 @@ export function initSessionNameListener() {
 
   input.addEventListener('change', persist);
   input.addEventListener('blur', persist);
-  dateInput?.addEventListener('change', syncSessionNameInput);
+  dateInput?.addEventListener('change', () => {
+    syncSessionNameInput();
+    renderSessionLogs(state.workoutsCache);
+  });
 }
