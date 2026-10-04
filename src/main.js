@@ -8,11 +8,13 @@ import { initBodyweight, fetchBodyWeightStatus } from './features/bodyweight.js'
 import { setupRealtimeListeners, initSessionNameListener } from './features/listeners.js';
 import { initNavigation } from './features/navigation.js';
 import { initCollapsibleSections } from './features/collapsible.js';
+import { initPlan, loadProgramSettings } from './features/plan.js';
 
 initAuth(() => {
   setupRealtimeListeners();
   fetchUserExercises();
   fetchBodyWeightStatus();
+  loadProgramSettings();
 });
 
 initExercises();
@@ -21,5 +23,6 @@ initBodyweight();
 initNavigation();
 initSessionNameListener();
 initCollapsibleSections();
+initPlan();
 
 registerSW({ immediate: true });

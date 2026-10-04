@@ -13,6 +13,7 @@ import { updateChartData } from './chart.js';
 import { renderHistory, renderSessionLogs } from './history.js';
 import { saveSessionName, syncSessionNameInput, getSelectedLogDateId } from './sessions.js';
 import { updateRecentExerciseChips } from './recent-exercises.js';
+import { renderPlan } from './plan.js';
 
 export function setupRealtimeListeners() {
   if (!state.currentUser) return;
@@ -26,6 +27,7 @@ export function setupRealtimeListeners() {
         state.workoutsCache = snapshot.docs.map((d) => ({ id: d.id, type: 'workout', ...d.data() }));
         refreshHistoryView();
         renderSessionLogs(state.workoutsCache);
+        renderPlan();
         updateRecentExerciseChips();
         updateChartData(state.workoutsCache);
         if (document.getElementById('input-exercise').value)
