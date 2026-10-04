@@ -8,9 +8,11 @@
     <title>MD RepTrack - Minimalist Workout Log</title>
     <script>
         try {
-            if (localStorage.getItem('reptrack-theme') === 'stone') {
-                document.documentElement.dataset.theme = 'stone';
-                document.querySelector('meta[name="theme-color"]').setAttribute('content', '#E9E6DF');
+            var t = localStorage.getItem('reptrack-theme');
+            var meta = { stone: '#E9E6DF', japandi: '#EFE9E1' }[t];
+            if (meta) {
+                document.documentElement.dataset.theme = t;
+                document.querySelector('meta[name="theme-color"]').setAttribute('content', meta);
             }
         } catch (e) {}
     </script>
@@ -24,9 +26,12 @@
         </div>
         <div id="user-info" class="flex items-center gap-4 hidden">
             <span id="user-email" class="text-[10px] text-subtle uppercase tracking-widest hidden sm:block"></span>
-            <button id="theme-toggle" type="button" class="text-subtle hover:text-fg transition" aria-label="Switch theme">
-                <i class="fa-solid fa-sun"></i>
-            </button>
+            <div class="relative">
+                <button id="theme-toggle" type="button" class="text-subtle hover:text-fg transition" aria-label="Choose theme" aria-haspopup="true" aria-expanded="false">
+                    <i class="fa-solid fa-palette"></i>
+                </button>
+                <div id="theme-menu" class="hidden absolute right-0 top-9 w-44 bg-surface border border-line rounded-2xl shadow-2xl p-1.5 animate-fade-in" role="menu"></div>
+            </div>
             <button id="logout-btn" class="text-subtle hover:text-fg transition">
                 <i class="fa-solid fa-arrow-right-from-bracket"></i>
             </button>

@@ -29,6 +29,31 @@
   color-scheme: dark;
 }
 
+/* Japandi theme: oat and linen, charcoal-brown text, clay accent, ink-blue details */
+:root[data-theme='japandi'] {
+  --c-bg: 239 233 225;
+  --c-surface: 248 244 238;
+  --c-input: 231 223 212;
+  --c-line: 222 212 199;
+  --c-line-soft: 232 225 215;
+  --c-raised: 212 200 184;
+  --c-ring: 180 166 146;
+  --c-fg: 43 39 36;
+  --c-fg2: 56 51 46;
+  --c-fg3: 74 68 61;
+  --c-muted: 99 91 82;
+  --c-subtle: 120 111 100;
+  --c-faint: 152 142 129;
+  --c-fainter: 176 166 152;
+  --c-accent: 154 91 63;
+  --c-on-accent: 248 244 238;
+  --c-warn: 140 102 24;
+  --c-info: 74 93 115;
+  --modal-bg: rgba(43, 39, 36, 0.4);
+  --date-icon-filter: none;
+  color-scheme: light;
+}
+
 /* Stone theme: warm, low-glare light theme with charcoal text and forest green */
 :root[data-theme='stone'] {
   --c-bg: 233 230 223;
