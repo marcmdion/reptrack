@@ -96,6 +96,13 @@ describe('add reps first', () => {
     expect(nextTarget(raise, climbing).reason).toBe('same');
   });
 
+  it('uses dumbbell reverse lunges on Lower A', () => {
+    const lunge = getDayPlan('lowerA', 1).items.find((i) => i.name === 'Dumbbell Reverse Lunge');
+    expect(lunge).toMatchObject({ start: 8, equip: 'dumbbell', each: true, repsFirst: true });
+    expect(getDayPlan('lowerA', 1).items.some((i) => i.name === 'Walking Lunge')).toBe(false);
+    expect(nextTarget(lunge, [session('d1', 8, [10, 10, 10])])).toMatchObject({ weight: 8, reps: 11 });
+  });
+
   it('marks the first exercise of a superset', () => {
     const items = getDayPlan('upperA', 1).items;
     expect(items.find((i) => i.name === 'Dumbbell Curl').supersetFirst).toBe(true);
