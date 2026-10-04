@@ -1,4 +1,3 @@
-import { flexRoutines } from '../lib/constants.js';
 import { state } from '../lib/state.js';
 import { ensureChartReady } from './chart.js';
 
@@ -58,90 +57,5 @@ export function initNavigation() {
     clearInterval(rT);
     rRem = 0;
     updateRT();
-  });
-
-  const bF1 = document.getElementById('btn-flex-set-1');
-  const bF2 = document.getElementById('btn-flex-set-2');
-  function rFlex(s) {
-    bF1.className =
-      s === 1
-        ? 'flex-1 py-2.5 text-xs tracking-wide font-semibold rounded-full bg-fg text-bg shadow-sm transition-all'
-        : 'flex-1 py-2.5 text-xs tracking-wide font-semibold rounded-full text-subtle hover:text-fg transition-all';
-    bF2.className =
-      s === 2
-        ? 'flex-1 py-2.5 text-xs tracking-wide font-semibold rounded-full bg-fg text-bg shadow-sm transition-all'
-        : 'flex-1 py-2.5 text-xs tracking-wide font-semibold rounded-full text-subtle hover:text-fg transition-all';
-    document.getElementById('flex-set-title').textContent = `Routine ${s}`;
-    const l = document.getElementById('flex-list');
-    l.innerHTML = '';
-    flexRoutines[s].forEach((ex, i) => {
-      const row = document.createElement('div');
-      row.className = 'flex items-center gap-4 py-3 border-b border-line-soft last:border-0';
-      const indexSpan = document.createElement('span');
-      indexSpan.className = 'text-faint text-[10px] font-mono w-4';
-      indexSpan.textContent = i + 1;
-      const nameSpan = document.createElement('span');
-      nameSpan.className = 'text-sm font-medium text-fg2';
-      nameSpan.textContent = ex;
-      row.append(indexSpan, nameSpan);
-      l.appendChild(row);
-    });
-  }
-  bF1.addEventListener('click', () => rFlex(1));
-  bF2.addEventListener('click', () => rFlex(2));
-  rFlex(1);
-
-  let fT = null;
-  let fTO = null;
-  let fRem = 0;
-  let fSel = 0;
-  function uFT() {
-    const d = document.getElementById('flex-timer-display');
-    const c = document.getElementById('flex-timer-cancel');
-    const st = document.getElementById('flex-timer-status');
-    if (fRem <= 0 && !fSel) {
-      d.textContent = '00:00';
-      d.className = 'text-3xl font-mono text-muted font-light';
-      c.classList.add('hidden');
-      st.classList.add('hidden');
-      return;
-    }
-    d.textContent = `${Math.floor(fRem / 60)
-      .toString()
-      .padStart(2, '0')}:${(fRem % 60).toString().padStart(2, '0')}`;
-    d.className = `text-3xl font-mono text-fg font-light ${fRem > 0 && fRem <= 5 ? 'animate-pulse' : ''}`;
-    c.classList.remove('hidden');
-  }
-  function sFT(sec) {
-    clearInterval(fT);
-    clearTimeout(fTO);
-    document.getElementById('flex-timer-status').classList.add('hidden');
-    fSel = sec;
-    fRem = sec;
-    uFT();
-    fT = setInterval(() => {
-      fRem--;
-      uFT();
-      if (fRem <= 0) {
-        clearInterval(fT);
-        document.getElementById('flex-timer-display').classList.remove('animate-pulse');
-        navigator.vibrate?.([200, 100, 200]);
-        document.getElementById('flex-timer-status').classList.remove('hidden');
-        fTO = setTimeout(() => {
-          if (fSel) sFT(fSel);
-        }, 5000);
-      }
-    }, 1000);
-  }
-  document.querySelectorAll('.flex-timer-btn').forEach((b) =>
-    b.addEventListener('click', (e) => sFT(parseInt(e.target.dataset.time))),
-  );
-  document.getElementById('flex-timer-cancel').addEventListener('click', () => {
-    clearInterval(fT);
-    clearTimeout(fTO);
-    fRem = 0;
-    fSel = 0;
-    uFT();
-    document.getElementById('flex-timer-status').classList.add('hidden');
   });
 }

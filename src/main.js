@@ -10,6 +10,7 @@ import { initNavigation } from './features/navigation.js';
 import { initCollapsibleSections } from './features/collapsible.js';
 import { initPlan, loadProgramSettings } from './features/plan.js';
 import { initTheme } from './features/theme.js';
+import { initMobility } from './features/mobility.js';
 
 initAuth(() => {
   setupRealtimeListeners();
@@ -26,5 +27,6 @@ initSessionNameListener();
 initCollapsibleSections();
 initPlan();
 initTheme();
+initMobility();
 
 registerSW({ immediate: true });
