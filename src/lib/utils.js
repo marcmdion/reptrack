@@ -16,6 +16,26 @@ export function workoutMatchesDateId(workout, dateId) {
   return getLocalDateId(workout.timestamp.toDate()) === dateId;
 }
 
+// Merge program sets (one doc per set) into one entry per exercise per day, kept at the first set's position
+export function groupProgramSets(items) {
+  const out = [];
+  const groups = {};
+  items.forEach((item) => {
+    if (item.type !== 'workout' || !item.program || item.setIndex == null || !item.timestamp) {
+      out.push(item);
+      return;
+    }
+    const key = `${getLocalDateId(item.timestamp.toDate())}|${item.exercise}`;
+    if (!groups[key]) {
+      groups[key] = { type: 'set-group', key, exercise: item.exercise, sets: [] };
+      out.push(groups[key]);
+    }
+    groups[key].sets.push(item);
+  });
+  Object.values(groups).forEach((g) => g.sets.sort((a, b) => a.setIndex - b.setIndex));
+  return out;
+}
+
 export function setButtonLoading(button, isLoading, loadingText = 'Saving...') {
   if (!button) return;
   if (isLoading) {

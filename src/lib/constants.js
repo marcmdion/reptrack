@@ -1,3 +1,5 @@
+import { programCardioExercises } from './program.js';
+
 export const orderedDefaults = [
   'Bench Press',
   'Omni Row',
@@ -19,7 +21,7 @@ export const orderedDefaults = [
   'Leg Curl',
 ];
 
-export const cardioExercises = ['Bike/row conditioning', 'Running'];
+export const cardioExercises = ['Bike/row conditioning', 'Running', ...programCardioExercises];
 
 export const flexRoutines = {
   1: ['Planks', 'Super man (YWT)', 'Child pose/Back Stretch', 'Upward/Downward', 'Bridge', 'V1', 'Lungeattack1', 'Sky1', 'lunge knee 1', 'lunge knee deeper hold 1', 'hold foot 1', 'V2', 'Lungeattack2', 'Sky2', 'lunge knee 2', 'lunge knee deeper hold 2', 'hold foot 2', 'Pigeon 52'],

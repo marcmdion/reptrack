@@ -6,6 +6,7 @@ Minimalist workout logger — log exercises, body weight, and mobility routines.
 
 ## Features
 
+- Today's Plan: built-in Upper/Lower + Cardio program with tap-to-check sets and automatic weight progression
 - Workout logging with sets, load (kg or BW), and reps
 - Session dates, names, and history
 - Body weight tracking per session

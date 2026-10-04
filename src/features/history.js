@@ -2,7 +2,7 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { cardioExercises } from '../lib/constants.js';
 import { db } from '../lib/firebase.js';
 import { state } from '../lib/state.js';
-import { escapeHtml, getLocalDateId, showToast } from '../lib/utils.js';
+import { escapeHtml, getLocalDateId, groupProgramSets, showToast } from '../lib/utils.js';
 import { confirmDialog } from '../lib/confirm.js';
 import { deleteLog, refreshHistoryView } from './listeners.js';
 import { getSelectedLogDateId, saveSessionName } from './sessions.js';
@@ -120,6 +120,101 @@ export function attachEditListeners(el, item, isTodayView = false) {
   });
 }
 
+function buildHistoryRow(item) {
+  const el = document.createElement('div');
+  el.className =
+    'flex justify-between items-center py-3 border-b border-[#111] last:border-0 group transition-colors';
+  if (item.type === 'workout') {
+    const isCardio = cardioExercises.includes(item.exercise);
+    const wDisplay = item.weight === 'BW' ? 'BW' : `${item.weight}kg`;
+    el.innerHTML = `
+      <div class="flex-1">
+        <div class="font-semibold text-gray-200 text-sm">${escapeHtml(item.exercise)} <span class="text-[9px] text-gray-500 font-normal ml-1">${item.setCount > 1 ? escapeHtml(`${item.setCount} SETS`) : ''}</span></div>
+        <div class="text-xs text-gray-500 mt-0.5">${isCardio ? `${escapeHtml(item.weight)} mins` : `${escapeHtml(wDisplay)} × ${escapeHtml(item.reps)}`}</div>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="text-xs font-mono text-gray-600">${isCardio ? '<i class="fa-solid fa-stopwatch"></i>' : item.weight === 'BW' ? '-' : (item.weight * item.reps * (item.setCount || 1)).toFixed(0)}</div>
+        <button class="edit-log-btn text-gray-600 hover:text-[#00E676] transition p-2"><i class="fa-solid fa-pen"></i></button>
+      </div>
+    `;
+  } else if (item.type === 'bodyweight') {
+    el.innerHTML = `
+      <div class="flex-1 flex items-center gap-2"><i class="fa-solid fa-weight-scale text-gray-500 text-xs"></i><span class="font-semibold text-gray-200 text-sm">Body Weight</span></div>
+      <div class="flex items-center gap-3">
+        <div class="font-bold text-white text-sm">${escapeHtml(item.weight)}kg</div>
+        <button class="edit-log-btn text-gray-600 hover:text-[#00E676] transition p-2"><i class="fa-solid fa-pen"></i></button>
+      </div>
+    `;
+  }
+  attachEditListeners(el, item, false);
+  return el;
+}
+
+function buildSessionRow(w) {
+  const el = document.createElement('div');
+  el.className = 'flex justify-between items-center py-3 border-b border-[#111] last:border-0 group';
+  const isCardio = cardioExercises.includes(w.exercise);
+  const wDisplay = w.weight === 'BW' ? 'BW' : `${w.weight}kg`;
+
+  el.innerHTML = `
+    <div class="flex-1">
+      <div class="font-semibold text-gray-200 text-sm">${escapeHtml(w.exercise)} <span class="text-[9px] text-gray-500 font-normal ml-1">${(w.setCount || 1) > 1 ? escapeHtml(`${w.setCount} SETS`) : ''}</span></div>
+      <div class="text-xs text-gray-500 mt-0.5">${isCardio ? `${escapeHtml(w.weight)} mins` : `${escapeHtml(w.weight === 'BW' ? 'BW' : `${w.weight}kg`)} × ${escapeHtml(w.reps)}`}</div>
+    </div>
+    <div class="flex items-center gap-1">
+      <button class="edit-log-btn text-gray-600 hover:text-[#00E676] transition p-2"><i class="fa-solid fa-pen"></i></button>
+    </div>
+  `;
+
+  attachEditListeners(el, w, true);
+  return el;
+}
+
+const expandedGroups = new Set();
+
+function formatSetSummary(sets) {
+  const weights = [...new Set(sets.map((w) => w.weight))];
+  const fmt = (wt) => (wt === 'BW' ? 'BW' : `${wt}kg`);
+  if (weights.length === 1) return `${fmt(weights[0])} × ${sets.map((w) => w.reps).join(' · ')}`;
+  return sets.map((w) => `${fmt(w.weight)}×${w.reps}`).join(', ');
+}
+
+// One row per exercise for program sets; tap to show (and edit) single sets
+function buildSetGroup(group, buildRow) {
+  const wrap = document.createElement('div');
+  wrap.className = 'border-b border-[#111] last:border-0';
+  const expanded = expandedGroups.has(group.key);
+  const volume = group.sets.reduce((sum, w) => sum + (w.weight === 'BW' ? 0 : w.weight * w.reps), 0);
+
+  const header = document.createElement('button');
+  header.type = 'button';
+  header.className = 'w-full flex justify-between items-center py-3 text-left';
+  header.innerHTML = `
+    <div class="flex-1">
+      <div class="font-semibold text-gray-200 text-sm">${escapeHtml(group.exercise)} <span class="text-[9px] text-gray-500 font-normal ml-1">${escapeHtml(`${group.sets.length} ${group.sets.length === 1 ? 'SET' : 'SETS'}`)}</span></div>
+      <div class="text-xs text-gray-500 mt-0.5">${escapeHtml(formatSetSummary(group.sets))}</div>
+    </div>
+    <div class="flex items-center gap-3">
+      <div class="text-xs font-mono text-gray-600">${volume ? volume.toFixed(0) : '-'}</div>
+      <span class="text-gray-600 p-2"><i class="fa-solid fa-chevron-down text-xs transition-transform ${expanded ? 'rotate-180' : ''}"></i></span>
+    </div>
+  `;
+  header.addEventListener('click', () => {
+    if (expandedGroups.has(group.key)) expandedGroups.delete(group.key);
+    else expandedGroups.add(group.key);
+    wrap.replaceWith(buildSetGroup(group, buildRow));
+  });
+  wrap.appendChild(header);
+
+  if (expanded) {
+    const list = document.createElement('div');
+    list.className = 'ml-3 pl-3 border-l border-[#222] mb-2';
+    group.sets.forEach((w) => list.appendChild(buildRow(w)));
+    wrap.appendChild(list);
+  }
+  return wrap;
+}
+
 export function renderHistory(items) {
   const container = document.getElementById('history-list');
   if (items.length === 0) {
@@ -209,39 +304,13 @@ export function renderHistory(items) {
     dateHeader.appendChild(leftDiv);
     const countSpan = document.createElement('span');
     countSpan.className = 'text-[10px] text-gray-500 font-mono';
-    countSpan.textContent = `${grouped[dateId].length} logs`;
+    countSpan.textContent = `${groupProgramSets(grouped[dateId]).length} logs`;
     dateHeader.appendChild(countSpan);
     dayContainer.appendChild(dateHeader);
 
     const listContainer = document.createElement('div');
-    grouped[dateId].forEach((item) => {
-      const el = document.createElement('div');
-      el.className =
-        'flex justify-between items-center py-3 border-b border-[#111] last:border-0 group transition-colors';
-      if (item.type === 'workout') {
-        const isCardio = cardioExercises.includes(item.exercise);
-        const wDisplay = item.weight === 'BW' ? 'BW' : `${item.weight}kg`;
-        el.innerHTML = `
-          <div class="flex-1">
-            <div class="font-semibold text-gray-200 text-sm">${escapeHtml(item.exercise)} <span class="text-[9px] text-gray-500 font-normal ml-1">${item.setCount > 1 ? escapeHtml(`${item.setCount} SETS`) : ''}</span></div>
-            <div class="text-xs text-gray-500 mt-0.5">${isCardio ? `${escapeHtml(item.weight)} mins` : `${escapeHtml(wDisplay)} × ${escapeHtml(item.reps)}`}</div>
-          </div>
-          <div class="flex items-center gap-3">
-            <div class="text-xs font-mono text-gray-600">${isCardio ? '<i class="fa-solid fa-stopwatch"></i>' : item.weight === 'BW' ? '-' : (item.weight * item.reps * (item.setCount || 1)).toFixed(0)}</div>
-            <button class="edit-log-btn text-gray-600 hover:text-[#00E676] transition p-2"><i class="fa-solid fa-pen"></i></button>
-          </div>
-        `;
-      } else if (item.type === 'bodyweight') {
-        el.innerHTML = `
-          <div class="flex-1 flex items-center gap-2"><i class="fa-solid fa-weight-scale text-gray-500 text-xs"></i><span class="font-semibold text-gray-200 text-sm">Body Weight</span></div>
-          <div class="flex items-center gap-3">
-            <div class="font-bold text-white text-sm">${escapeHtml(item.weight)}kg</div>
-            <button class="edit-log-btn text-gray-600 hover:text-[#00E676] transition p-2"><i class="fa-solid fa-pen"></i></button>
-          </div>
-        `;
-      }
-      attachEditListeners(el, item, false);
-      listContainer.appendChild(el);
+    groupProgramSets(grouped[dateId]).forEach((item) => {
+      listContainer.appendChild(item.type === 'set-group' ? buildSetGroup(item, buildHistoryRow) : buildHistoryRow(item));
     });
     dayContainer.appendChild(listContainer);
     container.appendChild(dayContainer);
@@ -262,23 +331,7 @@ export function renderSessionLogs(workouts) {
   }
 
   container.innerHTML = '';
-  sessionWorkouts.forEach((w) => {
-    const el = document.createElement('div');
-    el.className = 'flex justify-between items-center py-3 border-b border-[#111] last:border-0 group';
-    const isCardio = cardioExercises.includes(w.exercise);
-    const wDisplay = w.weight === 'BW' ? 'BW' : `${w.weight}kg`;
-
-    el.innerHTML = `
-      <div class="flex-1">
-        <div class="font-semibold text-gray-200 text-sm">${escapeHtml(w.exercise)} <span class="text-[9px] text-gray-500 font-normal ml-1">${(w.setCount || 1) > 1 ? escapeHtml(`${w.setCount} SETS`) : ''}</span></div>
-        <div class="text-xs text-gray-500 mt-0.5">${isCardio ? `${escapeHtml(w.weight)} mins` : `${escapeHtml(w.weight === 'BW' ? 'BW' : `${w.weight}kg`)} × ${escapeHtml(w.reps)}`}</div>
-      </div>
-      <div class="flex items-center gap-1">
-        <button class="edit-log-btn text-gray-600 hover:text-[#00E676] transition p-2"><i class="fa-solid fa-pen"></i></button>
-      </div>
-    `;
-
-    attachEditListeners(el, w, true);
-    container.appendChild(el);
+  groupProgramSets(sessionWorkouts).forEach((w) => {
+    container.appendChild(w.type === 'set-group' ? buildSetGroup(w, buildSessionRow) : buildSessionRow(w));
   });
 }

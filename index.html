@@ -117,6 +117,19 @@
                 </section>
             </div>
 
+            <section id="plan-section" class="bg-[#0a0a0a] border border-[#1a1a1a] rounded-3xl p-4">
+                <div class="flex justify-between items-center mb-4">
+                    <div>
+                        <div class="text-[10px] text-gray-500 uppercase tracking-widest font-semibold">Today's Plan</div>
+                        <div id="plan-title" class="text-xl font-bold text-white mt-0.5">—</div>
+                    </div>
+                    <button type="button" id="plan-week" class="text-[10px] font-semibold uppercase tracking-widest px-3 py-1.5 rounded-full bg-[#111] text-[#00E676] border border-[#222]" title="Change program start date">Week 1</button>
+                </div>
+                <div id="plan-body">
+                    <div class="flex justify-center py-6"><div class="loading-spinner"></div></div>
+                </div>
+            </section>
+
             <section class="collapsible-section bg-[#0a0a0a] border border-[#1a1a1a] rounded-3xl" data-collapsible="bodyweight" data-default-expanded="true">
                 <button type="button" class="collapsible-header w-full flex justify-between items-center p-4 text-left" aria-expanded="true">
                     <span class="text-[10px] text-gray-500 uppercase tracking-widest font-semibold">Body Weight</span>
@@ -139,9 +152,9 @@
                 </div>
             </section>
 
-            <section class="collapsible-section animate-fade-in" data-collapsible="log-form" data-default-expanded="true">
+            <section class="collapsible-section animate-fade-in" data-collapsible="log-form" data-default-expanded="false">
                 <button type="button" class="collapsible-header w-full flex justify-between items-center py-2 text-left" aria-expanded="true">
-                    <span class="text-[10px] text-gray-500 uppercase tracking-widest font-semibold">Log Exercise</span>
+                    <span class="text-[10px] text-gray-500 uppercase tracking-widest font-semibold">Log Extra Exercise</span>
                     <i class="fa-solid fa-chevron-down text-gray-600 text-xs collapsible-chevron transition-transform"></i>
                 </button>
                 <div class="collapsible-body">
