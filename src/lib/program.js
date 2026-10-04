@@ -43,7 +43,7 @@ export const programDays = {
       lift('Hack Squat', 50, 'heavy'),
       lift('Dumbbell Romanian Deadlift', 16, 'dumbbell', { each: true, repsFirst: true }),
       lift('Leg Curl', 25, 'machine'),
-      lift('Walking Lunge', 'BW', 'bw', { note: '10 each leg' }),
+      lift('Dumbbell Reverse Lunge', 8, 'dumbbell', { each: true, repsFirst: true, note: 'each leg' }),
       lift('Standing Calf Raise', 40, 'machine'),
       cardio(INCLINE_WALK, 30),
     ],
