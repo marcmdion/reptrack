@@ -108,7 +108,7 @@ export function initLogging() {
       const dateObj = item.timestamp ? item.timestamp.toDate() : new Date();
       const dFmt = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
       const line = document.createElement('div');
-      line.className = 'text-[10px] text-gray-500 font-mono tracking-wide';
+      line.className = 'text-[10px] text-subtle font-mono tracking-wide';
       if (cardioExercises.includes(item.exercise)) line.textContent = `${dFmt} — ${item.weight} mins`;
       else
         line.textContent = `${dFmt} — ${item.setCount || 1} sets of ${item.weight === 'BW' ? 'BW' : `${item.weight}kg`} × ${item.reps}`;

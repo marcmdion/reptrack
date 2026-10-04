@@ -48,7 +48,7 @@ export async function fetchBodyWeightStatus() {
         valueText: `${inputBW.value} kg`,
       });
       inputBW.disabled = true;
-      icon.className = 'fa-solid fa-pen text-gray-400';
+      icon.className = 'fa-solid fa-pen text-muted';
       btnSaveBW.title = 'Edit body weight';
     } else {
       state.todayBWDocId = null;
@@ -116,7 +116,7 @@ export function initBodyweight() {
         valueText: `${weight} kg`,
       });
       inputBW.disabled = true;
-      icon.className = 'fa-solid fa-pen text-gray-400';
+      icon.className = 'fa-solid fa-pen text-muted';
       btnSaveBW.title = 'Edit body weight';
       showToast(`Saved: ${weight}kg`);
     } catch {

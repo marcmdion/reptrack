@@ -14,7 +14,7 @@ export function confirmDialog({ title = 'Confirm', message, confirmLabel = 'Conf
   confirmBtn.textContent = confirmLabel;
   confirmBtn.className = danger
     ? 'flex-1 p-3 rounded-xl text-sm font-bold bg-red-500/90 text-white hover:bg-red-500 transition'
-    : 'flex-1 p-3 rounded-xl text-sm font-bold bg-[#00E676] text-black hover:opacity-90 transition';
+    : 'flex-1 p-3 rounded-xl text-sm font-bold bg-accent text-on-accent hover:opacity-90 transition';
 
   modal.classList.remove('hidden');
 

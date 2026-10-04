@@ -3,10 +3,45 @@ import { state } from '../lib/state.js';
 
 let chartSelectWired = false;
 
+// Read a theme color from CSS variables (see src/styles/main.css)
+function themeColor(name, alpha = 1) {
+  const rgb = getComputedStyle(document.documentElement).getPropertyValue(`--c-${name}`).trim().split(/\s+/).join(', ');
+  return `rgba(${rgb}, ${alpha})`;
+}
+
+function lineColor(i) {
+  return i === 0 ? themeColor('accent') : chartColors[i % chartColors.length];
+}
+
+function themedOptions(options) {
+  options.plugins.legend.labels.color = themeColor('muted');
+  Object.assign(options.plugins.tooltip, {
+    backgroundColor: themeColor('surface'),
+    titleColor: themeColor('fg'),
+    bodyColor: themeColor('fg3'),
+    borderColor: themeColor('ring'),
+  });
+  options.scales.y.grid.color = themeColor('line-soft');
+  options.scales.x.ticks = { ...options.scales.x.ticks, color: themeColor('subtle') };
+  options.scales.y.ticks = { ...options.scales.y.ticks, color: themeColor('subtle') };
+  return options;
+}
+
+// Re-color an existing chart after the theme changes
+export function applyChartTheme() {
+  const chart = state.chartInstance;
+  if (!chart) return;
+  themedOptions(chart.options);
+  chart.data.datasets.forEach((ds, i) => {
+    ds.borderColor = ds.label === 'Body Weight' ? themeColor('faint') : lineColor(i);
+  });
+  chart.update();
+}
+
 function initChart() {
   const Chart = state.chartModule;
   const ctx = document.getElementById('progressChart').getContext('2d');
-  Chart.defaults.color = '#6B7280';
+  Chart.defaults.color = themeColor('subtle');
   Chart.defaults.font.family = 'Inter';
   state.chartInstance = new Chart(ctx, {
     type: 'line',
@@ -18,24 +53,20 @@ function initChart() {
         legend: {
           display: true,
           position: 'bottom',
-          labels: { color: '#9CA3AF', boxWidth: 8, font: { size: 10 } },
+          labels: { boxWidth: 8, font: { size: 10 } },
         },
         tooltip: {
           mode: 'index',
           intersect: false,
-          backgroundColor: '#111',
-          titleColor: '#fff',
-          bodyColor: '#ccc',
-          borderColor: '#333',
           borderWidth: 1,
         },
       },
       scales: {
-        y: { border: { display: false }, grid: { color: '#111', drawBorder: false } },
+        y: { border: { display: false }, grid: { drawBorder: false } },
         x: { border: { display: false }, grid: { display: false } },
       },
     },
-  });
+  });  applyChartTheme();
 }
 
 function wireChartSelect() {
@@ -135,7 +166,7 @@ export function renderChart(targetExercise) {
       datasets.push({
         label: ex,
         data: sortedLabels.map((l) => map[l] || null),
-        borderColor: chartColors[i % chartColors.length],
+        borderColor: lineColor(i),
         borderWidth: 2,
         tension: 0.4,
         pointRadius: 0,
@@ -154,7 +185,7 @@ export function renderChart(targetExercise) {
     datasets.push({
       label: 'Body Weight',
       data: sortedLabels.map((l) => map[l] || null),
-      borderColor: '#333',
+      borderColor: themeColor('faint'),
       borderDash: [5, 5],
       borderWidth: 2,
       tension: 0.4,

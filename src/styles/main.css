@@ -5,19 +5,60 @@
 @tailwind utilities;
 
 :root {
-  --bg-deep: #000000;
-  --bg-surface: #0a0a0a;
-  --bg-input: #111111;
-  --accent: #00e676;
-  --text-main: #ffffff;
-  --text-muted: #6b7280;
-  --border-light: #1a1a1a;
+  /* Dark theme (default). Values are "R G B" so Tailwind can add opacity. */
+  --c-bg: 0 0 0;
+  --c-surface: 10 10 10;
+  --c-input: 17 17 17;
+  --c-line: 26 26 26;
+  --c-line-soft: 17 17 17;
+  --c-raised: 34 34 34;
+  --c-ring: 51 51 51;
+  --c-fg: 255 255 255;
+  --c-fg2: 229 231 235;
+  --c-fg3: 209 213 219;
+  --c-muted: 156 163 175;
+  --c-subtle: 107 114 128;
+  --c-faint: 75 85 99;
+  --c-fainter: 55 65 81;
+  --c-accent: 0 230 118;
+  --c-on-accent: 0 0 0;
+  --c-warn: 252 211 77;
+  --c-info: 56 189 248;
+  --modal-bg: rgba(0, 0, 0, 0.85);
+  --date-icon-filter: invert(1);
+  color-scheme: dark;
+}
+
+/* Stone theme: warm, low-glare light theme with charcoal text and forest green */
+:root[data-theme='stone'] {
+  --c-bg: 233 230 223;
+  --c-surface: 244 242 237;
+  --c-input: 225 221 212;
+  --c-line: 217 212 202;
+  --c-line-soft: 226 222 214;
+  --c-raised: 207 201 189;
+  --c-ring: 169 163 151;
+  --c-fg: 31 32 29;
+  --c-fg2: 45 47 42;
+  --c-fg3: 61 63 57;
+  --c-muted: 87 89 80;
+  --c-subtle: 110 111 102;
+  --c-faint: 142 141 131;
+  --c-fainter: 166 164 154;
+  --c-accent: 61 107 74;
+  --c-on-accent: 244 242 237;
+  --c-warn: 154 91 0;
+  --c-info: 47 102 136;
+  --modal-bg: rgba(31, 32, 29, 0.45);
+  --date-icon-filter: none;
+  color-scheme: light;
 }
 
 body {
   font-family: 'Inter', sans-serif;
-  background-color: var(--bg-deep);
-  color: var(--text-main);
+  background-color: rgb(var(--c-bg));
+  color: rgb(var(--c-fg));
+  transition: background-color 0.2s ease;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -34,38 +75,38 @@ a {
 
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+::-webkit-scrollbar-thumb { background: rgb(var(--c-ring)); border-radius: 4px; }
 
 .card {
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-light);
+  background-color: rgb(var(--c-surface));
+  border: 1px solid rgb(var(--c-line));
 }
 
 .input-field {
-  background-color: var(--bg-input);
+  background-color: rgb(var(--c-input));
   border: 1px solid transparent;
-  color: white;
+  color: rgb(var(--c-fg));
   transition: all 0.2s ease;
 }
 
 .input-field:focus {
-  border-color: #333;
-  background-color: #000;
+  border-color: rgb(var(--c-ring));
+  background-color: rgb(var(--c-bg));
   outline: none;
 }
 
 .btn-primary {
-  background-color: var(--text-main);
-  color: #000;
+  background-color: rgb(var(--c-fg));
+  color: rgb(var(--c-bg));
   font-weight: 600;
   transition: transform 0.1s active, opacity 0.2s;
 }
 
 .btn-primary:active { transform: scale(0.98); opacity: 0.9; }
 
-.nav-link { color: var(--text-muted); transition: color 0.2s; }
-.nav-link.active { color: var(--text-main); }
-.nav-link.active i { color: var(--accent); }
+.nav-link { color: rgb(var(--c-subtle)); transition: color 0.2s; }
+.nav-link.active { color: rgb(var(--c-fg)); }
+.nav-link.active i { color: rgb(var(--c-accent)); }
 
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(8px); }
@@ -84,18 +125,18 @@ a {
 .animate-spin { animation: spin 0.8s linear infinite; }
 
 .loading-spinner {
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  border-left-color: var(--text-main);
+  border: 2px solid rgb(var(--c-fg) / 0.1);
+  border-left-color: rgb(var(--c-fg));
   border-radius: 50%;
   width: 20px;
   height: 20px;
   animation: spin 0.8s linear infinite;
 }
 
-.modal-bg { background-color: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px); }
+.modal-bg { background-color: var(--modal-bg); backdrop-filter: blur(8px); }
 
 input[type="date"]::-webkit-calendar-picker-indicator {
-  filter: invert(1);
+  filter: var(--date-icon-filter);
   cursor: pointer;
   opacity: 0.6;
 }

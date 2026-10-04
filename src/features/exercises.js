@@ -157,13 +157,13 @@ function renderManagerList() {
   managerList.innerHTML = '';
   state.availableExercises.forEach((ex, index) => {
     const div = document.createElement('div');
-    div.className = 'flex justify-between items-center py-3 border-b border-[#111] last:border-0';
+    div.className = 'flex justify-between items-center py-3 border-b border-line-soft last:border-0';
 
     const nameContainer = document.createElement('div');
     nameContainer.className = 'flex-1 min-w-0 mr-2';
 
     const nameText = document.createElement('span');
-    nameText.className = 'text-sm text-gray-200 block w-full';
+    nameText.className = 'text-sm text-fg2 block w-full';
     nameText.textContent = ex;
     nameContainer.appendChild(nameText);
 
@@ -172,14 +172,14 @@ function renderManagerList() {
 
     const upBtn = document.createElement('button');
     upBtn.innerHTML = '<i class="fa-solid fa-arrow-up"></i>';
-    upBtn.className = `text-gray-600 hover:text-white transition ${index === 0 ? 'opacity-30 cursor-not-allowed' : ''}`;
+    upBtn.className = `text-faint hover:text-fg transition ${index === 0 ? 'opacity-30 cursor-not-allowed' : ''}`;
     upBtn.onclick = () => {
       if (index > 0) moveExercise(index, -1);
     };
 
     const downBtn = document.createElement('button');
     downBtn.innerHTML = '<i class="fa-solid fa-arrow-down"></i>';
-    downBtn.className = `text-gray-600 hover:text-white transition ${index === state.availableExercises.length - 1 ? 'opacity-30 cursor-not-allowed' : ''}`;
+    downBtn.className = `text-faint hover:text-fg transition ${index === state.availableExercises.length - 1 ? 'opacity-30 cursor-not-allowed' : ''}`;
     downBtn.onclick = () => {
       if (index < state.availableExercises.length - 1) moveExercise(index, 1);
     };
@@ -187,7 +187,7 @@ function renderManagerList() {
     const renameBtn = document.createElement('button');
     renameBtn.innerHTML = '<i class="fa-solid fa-pen text-[10px]"></i>';
     renameBtn.className =
-      'w-6 h-6 rounded-full bg-[#111] text-white hover:bg-[#222] transition flex items-center justify-center ml-2';
+      'w-6 h-6 rounded-full bg-input text-fg hover:bg-raised transition flex items-center justify-center ml-2';
 
     const delBtn = document.createElement('button');
     delBtn.innerHTML = '<i class="fa-solid fa-times"></i>';
@@ -201,11 +201,11 @@ function renderManagerList() {
       const input = document.createElement('input');
       input.type = 'text';
       input.value = ex;
-      input.className = 'w-full bg-[#111] text-white text-sm p-2 rounded-lg focus:outline-none';
+      input.className = 'w-full bg-input text-fg text-sm p-2 rounded-lg focus:outline-none';
       nameContainer.replaceChild(input, nameText);
       input.focus();
 
-      renameBtn.innerHTML = '<i class="fa-solid fa-check text-[#00E676]"></i>';
+      renameBtn.innerHTML = '<i class="fa-solid fa-check text-accent"></i>';
       const saveChange = async () => {
         if (input.value && input.value !== ex) await performRename(ex, input.value);
         else renderManagerList();

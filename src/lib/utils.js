@@ -41,7 +41,7 @@ export function setButtonLoading(button, isLoading, loadingText = 'Saving...') {
   if (isLoading) {
     if (!button.dataset.originalHtml) button.dataset.originalHtml = button.innerHTML;
     button.disabled = true;
-    button.innerHTML = `<span class="inline-block w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin mr-2 align-middle"></span>${loadingText}`;
+    button.innerHTML = `<span class="inline-block w-4 h-4 border-2 border-bg/20 border-t-bg rounded-full animate-spin mr-2 align-middle"></span>${loadingText}`;
   } else {
     button.disabled = false;
     if (button.dataset.originalHtml) {
@@ -53,7 +53,7 @@ export function setButtonLoading(button, isLoading, loadingText = 'Saving...') {
 
 export function showToast(msg, isError = false) {
   const div = document.createElement('div');
-  div.className = `fixed top-20 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-full text-sm font-bold shadow-2xl z-[100] animate-fade-in ${isError ? 'bg-red-500 text-white' : 'bg-[#00E676] text-black'}`;
+  div.className = `fixed top-20 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-full text-sm font-bold shadow-2xl z-[100] animate-fade-in ${isError ? 'bg-red-500 text-white' : 'bg-accent text-on-accent'}`;
   div.textContent = msg;
   document.body.appendChild(div);
   setTimeout(() => {
