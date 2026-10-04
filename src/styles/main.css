@@ -21,6 +21,17 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* No double-tap zoom when tapping fast (pinch zoom still works) */
+html,
+body,
+button,
+input,
+select,
+label,
+a {
+  touch-action: manipulation;
+}
+
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
