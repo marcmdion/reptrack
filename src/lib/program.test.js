@@ -13,7 +13,8 @@ import {
 const bench = { name: 'Bench Press', start: 35, equip: 'barbell' };
 const hack = { name: 'Hack Squat', start: 50, equip: 'heavy' };
 const curl = { name: 'Dumbbell Curl', start: 10, equip: 'dumbbell' };
-const session = (dateId, weight, reps) => ({ dateId, weight, reps, targetSets: 3 });
+const raise = { name: 'Lateral Raise', start: 6, equip: 'dumbbell', repsFirst: true };
+const session = (dateId, weight, reps, targetReps = 10) => ({ dateId, weight, reps, targetSets: 3, targetReps });
 
 describe('schedule', () => {
   it('maps weekdays to program days', () => {
@@ -79,6 +80,30 @@ describe('nextTarget', () => {
   });
 });
 
+describe('add reps first', () => {
+  it('adds a rep up to 12, then adds weight and resets to 10', () => {
+    expect(nextTarget(raise, [session('d1', 6, [10, 10, 10])])).toMatchObject({ weight: 6, reps: 11, reason: 'reps' });
+    expect(nextTarget(raise, [session('d1', 6, [11, 11, 11], 11)])).toMatchObject({ weight: 6, reps: 12 });
+    expect(nextTarget(raise, [session('d1', 6, [12, 12, 12], 12)])).toMatchObject({ weight: 8, reps: 10, reason: 'up' });
+  });
+
+  it('repeats the same rep target on a miss', () => {
+    expect(nextTarget(raise, [session('d1', 6, [11, 11, 10], 11)])).toMatchObject({ weight: 6, reps: 11, reason: 'same' });
+  });
+
+  it('is not stuck while reps keep going up', () => {
+    const climbing = [session('d3', 6, [12, 12, 11], 12), session('d2', 6, [11, 11, 11], 11), session('d1', 6, [10, 10, 10])];
+    expect(nextTarget(raise, climbing).reason).toBe('same');
+  });
+
+  it('marks the first exercise of a superset', () => {
+    const items = getDayPlan('upperA', 1).items;
+    expect(items.find((i) => i.name === 'Dumbbell Curl').supersetFirst).toBe(true);
+    expect(items.find((i) => i.name === 'Tricep Pushdown').supersetFirst).toBe(false);
+    expect(items.find((i) => i.name === 'Bench Press').supersetFirst).toBe(false);
+  });
+});
+
 describe('pastSessions', () => {
   it('groups program sets by day and ignores today and non-program logs', () => {
     const dateIdOf = (w) => w.d;
@@ -101,5 +126,7 @@ describe('nextRepState', () => {
     expect(nextRepState(10)).toBe(9);
     expect(nextRepState(6)).toBe(5);
     expect(nextRepState(5)).toBe(null);
+    expect(nextRepState(null, 12)).toBe(12);
+    expect(nextRepState(12, 12)).toBe(11);
   });
 });

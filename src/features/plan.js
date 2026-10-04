@@ -4,7 +4,6 @@ import { state } from '../lib/state.js';
 import { getLocalDateId, showToast } from '../lib/utils.js';
 import {
   PROGRAM_ID,
-  TARGET_REPS,
   dayKeyForDate,
   defaultStartDateId,
   getDayPlan,
@@ -68,7 +67,7 @@ function todaysDocs(dateId, exercise) {
 function targetFor(item, dateId) {
   const docs = todaysDocs(dateId, item.name);
   const computed = nextTarget(item, pastSessions(state.workoutsCache, item.name, dateId, dateIdOf));
-  if (docs.length) return { ...computed, weight: docs[0].weight };
+  if (docs.length) return { ...computed, weight: docs[0].weight, reps: docs[0].targetReps || computed.reps };
   const key = `${dateId}|${item.name}`;
   if (key in weightOverrides) return { ...computed, weight: weightOverrides[key] };
   return computed;
@@ -105,14 +104,14 @@ async function withPending(key, fn) {
   }
 }
 
-function onSetTap(plan, item, itemIndex, setIndex, dateId, weight) {
+function onSetTap(plan, item, itemIndex, setIndex, dateId, target) {
   const existing = todaysDocs(dateId, item.name).find((w) => w.setIndex === setIndex);
-  const next = nextRepState(existing ? existing.reps : null);
+  const next = nextRepState(existing ? existing.reps : null, target.reps);
   withPending(`${dateId}|${item.name}|${setIndex}`, async () => {
     if (!existing) {
       await addDoc(workoutsRef(), {
         exercise: item.name,
-        weight,
+        weight: target.weight,
         reps: next,
         setCount: 1,
         timestamp: logDate(dateId, itemIndex),
@@ -121,8 +120,9 @@ function onSetTap(plan, item, itemIndex, setIndex, dateId, weight) {
         programDay: plan.key,
         setIndex,
         targetSets: item.sets,
+        targetReps: target.reps,
       });
-      startRestTimer();
+      if (!item.supersetFirst) startRestTimer();
       ensureSessionName(dateId, plan.label);
     } else if (next == null) {
       await deleteDoc(doc(workoutsRef(), existing.id));
@@ -169,7 +169,8 @@ function onWeightChange(item, dateId, current, direction) {
 
 const REASON_TEXT = {
   start: { text: 'Start weight', cls: 'text-gray-500' },
-  up: { text: 'Up from last time', cls: 'text-[#00E676]' },
+  up: { text: 'Weight up', cls: 'text-[#00E676]' },
+  reps: { text: '+1 rep', cls: 'text-[#00E676]' },
   same: { text: 'Same as last time', cls: 'text-gray-500' },
   deload: { text: 'Deload -10%', cls: 'text-amber-400' },
   bw: { text: '', cls: '' },
@@ -182,7 +183,7 @@ function el(tag, className, text) {
   return node;
 }
 
-function setCircle(reps, label) {
+function setCircle(reps, targetReps, label) {
   const btn = el('button');
   btn.type = 'button';
   btn.setAttribute('aria-label', label);
@@ -190,7 +191,7 @@ function setCircle(reps, label) {
     'w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold transition active:scale-95 select-none';
   if (reps == null) {
     btn.className = `${base} bg-[#111] border border-[#222] text-gray-600`;
-  } else if (reps >= TARGET_REPS) {
+  } else if (reps >= targetReps) {
     btn.className = `${base} bg-[#00E676] text-black`;
     btn.innerHTML = '<i class="fa-solid fa-check"></i>';
   } else {
@@ -210,10 +211,13 @@ function renderLiftRow(plan, item, index, liftNumber, dateId) {
   info.append(el('div', 'text-sm font-semibold text-gray-100', `${liftNumber}. ${item.name}`));
 
   const meta = el('div', 'text-[10px] mt-1 flex flex-wrap gap-x-2');
-  meta.append(el('span', 'text-gray-400 font-mono', `${item.sets} × ${TARGET_REPS}${item.note ? ` (${item.note})` : ''}`));
+  meta.append(el('span', 'text-gray-400 font-mono', `${item.sets} × ${target.reps}${item.note ? ` (${item.note})` : ''}`));
   const reason = REASON_TEXT[target.reason];
   if (reason?.text) meta.append(el('span', reason.cls, reason.text));
-  if (item.superset) meta.append(el('span', 'text-sky-400', `Superset w/ ${item.superset}`));
+  if (item.superset) {
+    const text = item.supersetFirst ? `No rest, go to ${item.superset}` : `Superset w/ ${item.superset}`;
+    meta.append(el('span', 'text-sky-400', text));
+  }
   info.append(meta);
   top.append(info);
 
@@ -239,8 +243,8 @@ function renderLiftRow(plan, item, index, liftNumber, dateId) {
   const circles = el('div', 'flex gap-3 mt-3');
   for (let s = 0; s < item.sets; s++) {
     const d = docs.find((w) => w.setIndex === s);
-    const btn = setCircle(d ? d.reps : null, `${item.name} set ${s + 1}`);
-    btn.onclick = () => onSetTap(plan, item, index, s, dateId, target.weight);
+    const btn = setCircle(d ? d.reps : null, target.reps, `${item.name} set ${s + 1}`);
+    btn.onclick = () => onSetTap(plan, item, index, s, dateId, target);
     circles.append(btn);
   }
   row.append(circles);
@@ -253,7 +257,7 @@ function renderCardioRow(plan, item, index, dateId) {
   info.append(el('div', 'text-sm font-semibold text-gray-100', item.name));
   info.append(el('div', 'text-[10px] text-gray-400 font-mono mt-1', `${item.minutes} min`));
   const done = todaysDocs(dateId, item.name).length > 0;
-  const btn = setCircle(done ? TARGET_REPS : null, `${item.name} done`);
+  const btn = setCircle(done ? 1 : null, 1, `${item.name} done`);
   btn.onclick = () => onCardioTap(plan, item, index, dateId);
   row.append(info, btn);
   return { row, done: done ? 1 : 0, total: 1 };
@@ -351,7 +355,7 @@ export function renderPlan() {
 
   const finished = total > 0 && done >= total;
   progress.append(el('span', finished ? 'text-[#00E676]' : 'text-gray-500', finished ? 'Session complete' : `${done} / ${total} done`));
-  progress.append(el('span', 'text-gray-600 normal-case tracking-normal', 'Tap = 10 reps. Tap again = fewer.'));
+  progress.append(el('span', 'text-gray-600 normal-case tracking-normal', 'Tap = done. Tap again = fewer reps.'));
 }
 
 export function initPlan() {

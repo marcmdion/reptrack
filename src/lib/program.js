@@ -5,6 +5,8 @@ export const TARGET_REPS = 10;
 export const BASE_SETS = 3;
 export const EXTRA_SET_AFTER_WEEK = 8;
 export const MIN_REPS_SHOWN = 5;
+// "Add reps first" lifts climb from TARGET_REPS to TOP_REPS before adding weight
+export const TOP_REPS = 12;
 
 // step = smallest weight jump available (used for rounding a deload)
 const EQUIP = {
@@ -30,8 +32,8 @@ export const programDays = {
       lift('Chest-Supported Row', 35, 'machine'),
       lift('Overhead Press', 17.5, 'barbell'),
       lift('Lat Pulldown', 35, 'machine'),
-      lift('Dumbbell Curl', 10, 'dumbbell', { each: true, superset: 'Tricep Pushdown' }),
-      lift('Tricep Pushdown', 15, 'machine', { superset: 'Dumbbell Curl' }),
+      lift('Dumbbell Curl', 10, 'dumbbell', { each: true, repsFirst: true, superset: 'Tricep Pushdown' }),
+      lift('Tricep Pushdown', 15, 'machine', { repsFirst: true, superset: 'Dumbbell Curl' }),
       cardio(INCLINE_WALK, 30),
     ],
   },
@@ -39,7 +41,7 @@ export const programDays = {
     label: 'Lower A',
     items: [
       lift('Hack Squat', 50, 'heavy'),
-      lift('Dumbbell Romanian Deadlift', 16, 'dumbbell', { each: true }),
+      lift('Dumbbell Romanian Deadlift', 16, 'dumbbell', { each: true, repsFirst: true }),
       lift('Leg Curl', 25, 'machine'),
       lift('Walking Lunge', 'BW', 'bw', { note: '10 each leg' }),
       lift('Standing Calf Raise', 40, 'machine'),
@@ -49,12 +51,12 @@ export const programDays = {
   upperB: {
     label: 'Upper B',
     items: [
-      lift('Incline Dumbbell Press', 14, 'dumbbell', { each: true }),
+      lift('Incline Dumbbell Press', 14, 'dumbbell', { each: true, repsFirst: true }),
       lift('Seated Cable Row', 30, 'machine'),
-      lift('Seated Dumbbell Shoulder Press', 12, 'dumbbell', { each: true }),
+      lift('Seated Dumbbell Shoulder Press', 12, 'dumbbell', { each: true, repsFirst: true }),
       lift('Close-Grip Lat Pulldown', 35, 'machine'),
-      lift('Lateral Raise', 6, 'dumbbell', { each: true, superset: 'Face Pull' }),
-      lift('Face Pull', 14, 'machine', { superset: 'Lateral Raise' }),
+      lift('Lateral Raise', 6, 'dumbbell', { each: true, repsFirst: true, superset: 'Face Pull' }),
+      lift('Face Pull', 14, 'machine', { repsFirst: true, superset: 'Lateral Raise' }),
       cardio(INCLINE_WALK, 30),
     ],
   },
@@ -110,11 +112,13 @@ export function getDayPlan(dayKey, week) {
     return { key: dayKey, label: day.label, items, note: week >= 4 ? 'Intervals: 1 min hard, 2 min easy' : '' };
   }
   let liftIndex = 0;
-  const items = day.items.map((item) => {
+  const items = day.items.map((item, i) => {
     if (item.cardio) return item;
     liftIndex++;
     const sets = week > EXTRA_SET_AFTER_WEEK && liftIndex <= 2 ? BASE_SETS + 1 : BASE_SETS;
-    return { ...item, sets };
+    // First exercise of a superset pair: go straight to the partner, no rest
+    const supersetFirst = !!item.superset && day.items.findIndex((x) => x.name === item.superset) > i;
+    return { ...item, sets, supersetFirst };
   });
   return { key: dayKey, label: day.label, items, note: '' };
 }
@@ -132,43 +136,58 @@ export function pastSessions(workouts, exercise, beforeDateId, dateIdOf) {
     if (w.program !== PROGRAM_ID || w.exercise !== exercise) return;
     const dateId = dateIdOf(w);
     if (!dateId || dateId >= beforeDateId) return;
-    if (!byDay[dateId]) byDay[dateId] = { dateId, weight: w.weight, reps: [], targetSets: w.targetSets || BASE_SETS };
+    if (!byDay[dateId]) {
+      byDay[dateId] = {
+        dateId,
+        weight: w.weight,
+        reps: [],
+        targetSets: w.targetSets || BASE_SETS,
+        targetReps: w.targetReps || TARGET_REPS,
+      };
+    }
     byDay[dateId].reps.push(Number(w.reps) || 0);
   });
   return Object.values(byDay).sort((a, b) => (a.dateId < b.dateId ? 1 : -1));
 }
 
 export function sessionSucceeded(session) {
-  return session.reps.length >= session.targetSets && session.reps.every((r) => r >= TARGET_REPS);
+  const target = session.targetReps || TARGET_REPS;
+  return session.reps.length >= session.targetSets && session.reps.every((r) => r >= target);
 }
 
-// Returns { weight, reason } where reason is one of: start, up, same, deload, bw
+// Returns { weight, reps, reason } where reason is one of: start, up, reps, same, deload, bw
 export function nextTarget(item, sessions) {
-  if (item.equip === 'bw') return { weight: 'BW', reason: 'bw' };
-  if (sessions.length === 0) return { weight: item.start, reason: 'start' };
+  if (item.equip === 'bw') return { weight: 'BW', reps: TARGET_REPS, reason: 'bw' };
+  if (sessions.length === 0) return { weight: item.start, reps: TARGET_REPS, reason: 'start' };
 
   const last = sessions[0];
   const lastWeight = Number(last.weight);
+  const lastReps = item.repsFirst ? last.targetReps || TARGET_REPS : TARGET_REPS;
   const { inc, step } = EQUIP[item.equip];
 
-  if (sessionSucceeded(last)) return { weight: lastWeight + inc, reason: 'up', from: lastWeight };
+  if (sessionSucceeded(last)) {
+    if (item.repsFirst && lastReps < TOP_REPS) return { weight: lastWeight, reps: lastReps + 1, reason: 'reps' };
+    return { weight: lastWeight + inc, reps: TARGET_REPS, reason: 'up' };
+  }
 
   const lastThree = sessions.slice(0, 3);
   const stuck =
     lastThree.length === 3 &&
-    lastThree.every((s) => Number(s.weight) === lastWeight && !sessionSucceeded(s));
-  if (stuck) return { weight: roundDownTo(lastWeight * 0.9, step), reason: 'deload', from: lastWeight };
+    lastThree.every(
+      (s) => Number(s.weight) === lastWeight && (s.targetReps || TARGET_REPS) === last.targetReps && !sessionSucceeded(s),
+    );
+  if (stuck) return { weight: roundDownTo(lastWeight * 0.9, step), reps: TARGET_REPS, reason: 'deload' };
 
-  return { weight: lastWeight, reason: 'same', from: lastWeight };
+  return { weight: lastWeight, reps: lastReps, reason: 'same' };
 }
 
 export function weightStep(item) {
   return EQUIP[item.equip]?.step || 0;
 }
 
-// Tapping a set circle: empty -> 10 -> 9 -> ... -> 5 -> empty
-export function nextRepState(current) {
-  if (current == null) return TARGET_REPS;
+// Tapping a set circle: empty -> target -> target-1 -> ... -> 5 -> empty
+export function nextRepState(current, target = TARGET_REPS) {
+  if (current == null) return target;
   if (current <= MIN_REPS_SHOWN) return null;
-  return Math.min(current, TARGET_REPS) - 1;
+  return Math.min(current, target) - 1;
 }
