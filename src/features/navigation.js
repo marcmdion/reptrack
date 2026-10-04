@@ -29,14 +29,14 @@ export function initNavigation() {
     const c = document.getElementById('timer-cancel');
     if (rRem <= 0) {
       d.textContent = '00:00';
-      d.className = 'text-xl font-mono text-gray-400';
+      d.className = 'text-xl font-mono text-muted';
       c.classList.add('hidden');
       return;
     }
     d.textContent = `${Math.floor(rRem / 60)
       .toString()
       .padStart(2, '0')}:${(rRem % 60).toString().padStart(2, '0')}`;
-    d.className = `text-xl font-mono text-[#00E676] ${rRem <= 5 ? 'animate-pulse' : ''}`;
+    d.className = `text-xl font-mono text-accent ${rRem <= 5 ? 'animate-pulse' : ''}`;
     c.classList.remove('hidden');
   }
   document.querySelectorAll('.timer-btn').forEach((b) =>
@@ -65,23 +65,23 @@ export function initNavigation() {
   function rFlex(s) {
     bF1.className =
       s === 1
-        ? 'flex-1 py-2.5 text-xs tracking-wide font-semibold rounded-full bg-white text-black shadow-sm transition-all'
-        : 'flex-1 py-2.5 text-xs tracking-wide font-semibold rounded-full text-gray-500 hover:text-white transition-all';
+        ? 'flex-1 py-2.5 text-xs tracking-wide font-semibold rounded-full bg-fg text-bg shadow-sm transition-all'
+        : 'flex-1 py-2.5 text-xs tracking-wide font-semibold rounded-full text-subtle hover:text-fg transition-all';
     bF2.className =
       s === 2
-        ? 'flex-1 py-2.5 text-xs tracking-wide font-semibold rounded-full bg-white text-black shadow-sm transition-all'
-        : 'flex-1 py-2.5 text-xs tracking-wide font-semibold rounded-full text-gray-500 hover:text-white transition-all';
+        ? 'flex-1 py-2.5 text-xs tracking-wide font-semibold rounded-full bg-fg text-bg shadow-sm transition-all'
+        : 'flex-1 py-2.5 text-xs tracking-wide font-semibold rounded-full text-subtle hover:text-fg transition-all';
     document.getElementById('flex-set-title').textContent = `Routine ${s}`;
     const l = document.getElementById('flex-list');
     l.innerHTML = '';
     flexRoutines[s].forEach((ex, i) => {
       const row = document.createElement('div');
-      row.className = 'flex items-center gap-4 py-3 border-b border-[#111] last:border-0';
+      row.className = 'flex items-center gap-4 py-3 border-b border-line-soft last:border-0';
       const indexSpan = document.createElement('span');
-      indexSpan.className = 'text-gray-600 text-[10px] font-mono w-4';
+      indexSpan.className = 'text-faint text-[10px] font-mono w-4';
       indexSpan.textContent = i + 1;
       const nameSpan = document.createElement('span');
-      nameSpan.className = 'text-sm font-medium text-gray-200';
+      nameSpan.className = 'text-sm font-medium text-fg2';
       nameSpan.textContent = ex;
       row.append(indexSpan, nameSpan);
       l.appendChild(row);
@@ -101,7 +101,7 @@ export function initNavigation() {
     const st = document.getElementById('flex-timer-status');
     if (fRem <= 0 && !fSel) {
       d.textContent = '00:00';
-      d.className = 'text-3xl font-mono text-gray-400 font-light';
+      d.className = 'text-3xl font-mono text-muted font-light';
       c.classList.add('hidden');
       st.classList.add('hidden');
       return;
@@ -109,7 +109,7 @@ export function initNavigation() {
     d.textContent = `${Math.floor(fRem / 60)
       .toString()
       .padStart(2, '0')}:${(fRem % 60).toString().padStart(2, '0')}`;
-    d.className = `text-3xl font-mono text-white font-light ${fRem > 0 && fRem <= 5 ? 'animate-pulse' : ''}`;
+    d.className = `text-3xl font-mono text-fg font-light ${fRem > 0 && fRem <= 5 ? 'animate-pulse' : ''}`;
     c.classList.remove('hidden');
   }
   function sFT(sec) {

@@ -168,11 +168,11 @@ function onWeightChange(item, dateId, current, direction) {
 }
 
 const REASON_TEXT = {
-  start: { text: 'Start weight', cls: 'text-gray-500' },
-  up: { text: 'Weight up', cls: 'text-[#00E676]' },
-  reps: { text: '+1 rep', cls: 'text-[#00E676]' },
-  same: { text: 'Same as last time', cls: 'text-gray-500' },
-  deload: { text: 'Deload -10%', cls: 'text-amber-400' },
+  start: { text: 'Start weight', cls: 'text-subtle' },
+  up: { text: 'Weight up', cls: 'text-accent' },
+  reps: { text: '+1 rep', cls: 'text-accent' },
+  same: { text: 'Same as last time', cls: 'text-subtle' },
+  deload: { text: 'Deload -10%', cls: 'text-warn' },
   bw: { text: '', cls: '' },
 };
 
@@ -190,53 +190,53 @@ function setCircle(reps, targetReps, label) {
   const base =
     'w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold transition active:scale-95 select-none';
   if (reps == null) {
-    btn.className = `${base} bg-[#111] border border-[#222] text-gray-600`;
+    btn.className = `${base} bg-input border border-raised text-faint`;
   } else if (reps >= targetReps) {
-    btn.className = `${base} bg-[#00E676] text-black`;
+    btn.className = `${base} bg-accent text-on-accent`;
     btn.innerHTML = '<i class="fa-solid fa-check"></i>';
   } else {
-    btn.className = `${base} bg-amber-500/20 border border-amber-500/50 text-amber-300`;
+    btn.className = `${base} bg-amber-500/20 border border-amber-500/50 text-warn`;
     btn.textContent = reps;
   }
   return btn;
 }
 
 function renderLiftRow(plan, item, index, liftNumber, dateId) {
-  const row = el('div', 'py-4 border-b border-[#111] last:border-0');
+  const row = el('div', 'py-4 border-b border-line-soft last:border-0');
   const target = targetFor(item, dateId);
   const docs = todaysDocs(dateId, item.name);
 
   const top = el('div', 'flex justify-between items-start gap-3');
   const info = el('div', 'min-w-0');
-  info.append(el('div', 'text-sm font-semibold text-gray-100', `${liftNumber}. ${item.name}`));
+  info.append(el('div', 'text-sm font-semibold text-fg2', `${liftNumber}. ${item.name}`));
 
   const meta = el('div', 'text-[10px] mt-1 flex flex-wrap gap-x-2');
-  meta.append(el('span', 'text-gray-400 font-mono', `${item.sets} × ${target.reps}${item.note ? ` (${item.note})` : ''}`));
+  meta.append(el('span', 'text-muted font-mono', `${item.sets} × ${target.reps}${item.note ? ` (${item.note})` : ''}`));
   const reason = REASON_TEXT[target.reason];
   if (reason?.text) meta.append(el('span', reason.cls, reason.text));
   if (item.superset) {
     const text = item.supersetFirst ? `No rest, go to ${item.superset}` : `Superset w/ ${item.superset}`;
-    meta.append(el('span', 'text-sky-400', text));
+    meta.append(el('span', 'text-info', text));
   }
   info.append(meta);
   top.append(info);
 
   if (target.weight !== 'BW') {
     const weightBox = el('div', 'flex items-center gap-1 shrink-0');
-    const minus = el('button', 'w-8 h-8 rounded-full bg-[#111] text-gray-400 hover:text-white text-xs');
+    const minus = el('button', 'w-8 h-8 rounded-full bg-input text-muted hover:text-fg text-xs');
     minus.type = 'button';
     minus.innerHTML = '<i class="fa-solid fa-minus"></i>';
     minus.setAttribute('aria-label', `Lower ${item.name} weight`);
     minus.onclick = () => onWeightChange(item, dateId, target.weight, -1);
-    const plus = el('button', 'w-8 h-8 rounded-full bg-[#111] text-gray-400 hover:text-white text-xs');
+    const plus = el('button', 'w-8 h-8 rounded-full bg-input text-muted hover:text-fg text-xs');
     plus.type = 'button';
     plus.innerHTML = '<i class="fa-solid fa-plus"></i>';
     plus.setAttribute('aria-label', `Raise ${item.name} weight`);
     plus.onclick = () => onWeightChange(item, dateId, target.weight, 1);
-    weightBox.append(minus, el('span', 'text-sm font-bold text-white w-[4.5rem] text-center', formatKg(target.weight, item.each)), plus);
+    weightBox.append(minus, el('span', 'text-sm font-bold text-fg w-[4.5rem] text-center', formatKg(target.weight, item.each)), plus);
     top.append(weightBox);
   } else {
-    top.append(el('span', 'text-sm font-bold text-white shrink-0', 'BW'));
+    top.append(el('span', 'text-sm font-bold text-fg shrink-0', 'BW'));
   }
   row.append(top);
 
@@ -252,10 +252,10 @@ function renderLiftRow(plan, item, index, liftNumber, dateId) {
 }
 
 function renderCardioRow(plan, item, index, dateId) {
-  const row = el('div', 'py-4 border-b border-[#111] last:border-0 flex justify-between items-center gap-3');
+  const row = el('div', 'py-4 border-b border-line-soft last:border-0 flex justify-between items-center gap-3');
   const info = el('div');
-  info.append(el('div', 'text-sm font-semibold text-gray-100', item.name));
-  info.append(el('div', 'text-[10px] text-gray-400 font-mono mt-1', `${item.minutes} min`));
+  info.append(el('div', 'text-sm font-semibold text-fg2', item.name));
+  info.append(el('div', 'text-[10px] text-muted font-mono mt-1', `${item.minutes} min`));
   const done = todaysDocs(dateId, item.name).length > 0;
   const btn = setCircle(done ? 1 : null, 1, `${item.name} done`);
   btn.onclick = () => onCardioTap(plan, item, index, dateId);
@@ -275,7 +275,7 @@ function renderDayPicker(container, dateId, activeKey) {
     const active = key === activeKey;
     const isNatural = key === naturalKey;
     btn.className = `flex flex-col items-center py-1.5 rounded-xl text-[9px] font-semibold uppercase tracking-wide transition ${
-      active ? 'bg-white text-black' : isNatural ? 'bg-[#111] text-white' : 'bg-[#0a0a0a] text-gray-500 hover:text-white'
+      active ? 'bg-fg text-bg' : isNatural ? 'bg-input text-fg' : 'bg-surface text-subtle hover:text-fg'
     }`;
     btn.append(el('span', 'text-[11px]', DAY_LETTERS[dow]));
     btn.append(el('span', 'opacity-70 normal-case', programDays[key].label.replace('Upper ', 'Up ').replace('Lower ', 'Lo ')));
@@ -289,9 +289,9 @@ function renderDayPicker(container, dateId, activeKey) {
 }
 
 function renderStartDateEditor(container) {
-  const wrap = el('div', 'flex items-center justify-between gap-2 mb-4 text-[10px] text-gray-500');
+  const wrap = el('div', 'flex items-center justify-between gap-2 mb-4 text-[10px] text-subtle');
   wrap.append(el('span', 'uppercase tracking-widest font-semibold', 'Program start'));
-  const input = el('input', 'bg-[#111] text-white text-xs rounded-full px-3 py-1 focus:outline-none');
+  const input = el('input', 'bg-input text-fg text-xs rounded-full px-3 py-1 focus:outline-none');
   input.type = 'date';
   input.value = startDateId;
   input.onchange = async () => {
@@ -330,14 +330,14 @@ export function renderPlan() {
   if (showStartEditor) renderStartDateEditor(container);
 
   if (dayKey === 'rest') {
-    container.append(el('div', 'text-center py-6 text-gray-500 text-sm', 'Rest day. Recover, eat, sleep.'));
-    container.append(el('div', 'text-center text-[10px] text-gray-600', 'Missed a day? Pick it above.'));
+    container.append(el('div', 'text-center py-6 text-subtle text-sm', 'Rest day. Recover, eat, sleep.'));
+    container.append(el('div', 'text-center text-[10px] text-faint', 'Missed a day? Pick it above.'));
     return;
   }
 
   const progress = el('div', 'flex justify-between items-center text-[10px] uppercase tracking-widest font-semibold mb-1');
   container.append(progress);
-  if (plan.note) container.append(el('div', 'text-[10px] text-sky-400 mb-1', plan.note));
+  if (plan.note) container.append(el('div', 'text-[10px] text-info mb-1', plan.note));
 
   const list = el('div');
   let done = 0;
@@ -354,8 +354,8 @@ export function renderPlan() {
   container.append(list);
 
   const finished = total > 0 && done >= total;
-  progress.append(el('span', finished ? 'text-[#00E676]' : 'text-gray-500', finished ? 'Session complete' : `${done} / ${total} done`));
-  progress.append(el('span', 'text-gray-600 normal-case tracking-normal', 'Tap = done. Tap again = fewer reps.'));
+  progress.append(el('span', finished ? 'text-accent' : 'text-subtle', finished ? 'Session complete' : `${done} / ${total} done`));
+  progress.append(el('span', 'text-faint normal-case tracking-normal', 'Tap = done. Tap again = fewer reps.'));
 }
 
 export function initPlan() {

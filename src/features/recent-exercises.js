@@ -25,7 +25,7 @@ export function updateRecentExerciseChips() {
   container.classList.remove('hidden');
   container.innerHTML = '';
   const label = document.createElement('span');
-  label.className = 'text-[9px] text-gray-600 uppercase tracking-widest mr-1';
+  label.className = 'text-[9px] text-faint uppercase tracking-widest mr-1';
   label.textContent = 'Recent';
   container.appendChild(label);
 
@@ -33,7 +33,7 @@ export function updateRecentExerciseChips() {
     const chip = document.createElement('button');
     chip.type = 'button';
     chip.className =
-      'text-[10px] font-semibold px-3 py-1 rounded-full bg-[#111] text-gray-300 hover:text-white hover:bg-[#1a1a1a] border border-[#222] transition';
+      'text-[10px] font-semibold px-3 py-1 rounded-full bg-input text-fg3 hover:text-fg hover:bg-line border border-raised transition';
     chip.textContent = name;
     chip.addEventListener('click', () => {
       const dropdown = document.getElementById('input-exercise');
