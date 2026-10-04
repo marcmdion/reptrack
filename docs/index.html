@@ -6,31 +6,42 @@
     <meta name="description" content="Minimalist workout tracking — log lifts, body weight, and mobility.">
     <meta name="theme-color" content="#000000">
     <title>MD RepTrack - Minimalist Workout Log</title>
+    <script>
+        try {
+            if (localStorage.getItem('reptrack-theme') === 'stone') {
+                document.documentElement.dataset.theme = 'stone';
+                document.querySelector('meta[name="theme-color"]').setAttribute('content', '#E9E6DF');
+            }
+        } catch (e) {}
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <script type="module" crossorigin src="/reptrack/assets/index-DEzW5Ss6.js"></script>
-  <link rel="stylesheet" crossorigin href="/reptrack/assets/index-BDN1sq9w.css">
+  <script type="module" crossorigin src="/reptrack/assets/index-DARR4ET8.js"></script>
+  <link rel="stylesheet" crossorigin href="/reptrack/assets/index-BTbYnFQV.css">
 <link rel="manifest" href="/reptrack/manifest.webmanifest"></head>
-<body class="bg-[var(--bg-deep)] text-[var(--text-main)] min-h-screen selection:bg-[#333]">
+<body class="bg-bg text-fg min-h-screen selection:bg-ring">
 
-    <header class="fixed top-0 left-0 right-0 z-50 h-16 pt-safe flex justify-between items-center px-6 bg-black/80 backdrop-blur-lg border-b border-[#111]">
+    <header class="fixed top-0 left-0 right-0 z-50 h-16 pt-safe flex justify-between items-center px-6 bg-bg/80 backdrop-blur-lg border-b border-line-soft">
         <div class="flex items-center gap-2 tracking-widest text-lg font-bold">
-            MD REP<span class="text-[#00E676] font-medium">TRACK</span>
+            MD REP<span class="text-accent font-medium">TRACK</span>
         </div>
         <div id="user-info" class="flex items-center gap-4 hidden">
-            <span id="user-email" class="text-[10px] text-gray-500 uppercase tracking-widest hidden sm:block"></span>
-            <button id="logout-btn" class="text-gray-500 hover:text-white transition">
+            <span id="user-email" class="text-[10px] text-subtle uppercase tracking-widest hidden sm:block"></span>
+            <button id="theme-toggle" type="button" class="text-subtle hover:text-fg transition" aria-label="Switch theme">
+                <i class="fa-solid fa-sun"></i>
+            </button>
+            <button id="logout-btn" class="text-subtle hover:text-fg transition">
                 <i class="fa-solid fa-arrow-right-from-bracket"></i>
             </button>
         </div>
     </header>
 
-    <div id="auth-screen" class="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-black p-6 transition-opacity duration-500">
+    <div id="auth-screen" class="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-bg p-6 transition-opacity duration-500">
         <div class="text-center mb-12">
-            <div class="w-16 h-16 bg-[#111] rounded-full flex items-center justify-center mx-auto mb-6">
-                <i class="fa-solid fa-bolt text-2xl text-[#00E676]"></i>
+            <div class="w-16 h-16 bg-input rounded-full flex items-center justify-center mx-auto mb-6">
+                <i class="fa-solid fa-bolt text-2xl text-accent"></i>
             </div>
             <h2 class="text-2xl font-semibold tracking-wide mb-2">Welcome</h2>
-            <p class="text-sm text-gray-500">Minimalist workout tracking.</p>
+            <p class="text-sm text-subtle">Minimalist workout tracking.</p>
         </div>
         
         <div class="w-full max-w-xs space-y-3">
@@ -42,10 +53,10 @@
             <button id="login-btn" class="btn-primary w-full p-4 rounded-full text-sm mt-4 flex items-center justify-center gap-2">
                 Sign In
             </button>
-            <button id="register-btn" class="w-full p-4 rounded-full bg-transparent text-gray-400 text-sm hover:text-white transition">
+            <button id="register-btn" class="w-full p-4 rounded-full bg-transparent text-muted text-sm hover:text-fg transition">
                 Create Account
             </button>
-            <button id="forgot-password-btn" type="button" class="w-full p-2 text-[10px] text-gray-500 hover:text-white uppercase tracking-widest transition">
+            <button id="forgot-password-btn" type="button" class="w-full p-2 text-[10px] text-subtle hover:text-fg uppercase tracking-widest transition">
                 Forgot password?
             </button>
         </div>
@@ -56,26 +67,26 @@
     </div>
     
     <div id="confirm-modal" class="fixed inset-0 z-[70] hidden flex items-center justify-center modal-bg p-4">
-        <div class="bg-[#0a0a0a] w-full max-w-sm rounded-[24px] p-6 border border-[#1a1a1a] shadow-2xl animate-fade-in">
-            <h3 id="confirm-modal-title" class="text-lg font-bold text-white mb-2">Confirm</h3>
-            <p id="confirm-modal-message" class="text-sm text-gray-400 mb-6"></p>
+        <div class="bg-surface w-full max-w-sm rounded-[24px] p-6 border border-line shadow-2xl animate-fade-in">
+            <h3 id="confirm-modal-title" class="text-lg font-bold text-fg mb-2">Confirm</h3>
+            <p id="confirm-modal-message" class="text-sm text-muted mb-6"></p>
             <div class="flex gap-3">
-                <button type="button" id="confirm-modal-cancel" class="flex-1 p-3 rounded-xl text-sm font-semibold bg-[#111] text-gray-300 hover:text-white transition">Cancel</button>
+                <button type="button" id="confirm-modal-cancel" class="flex-1 p-3 rounded-xl text-sm font-semibold bg-input text-fg3 hover:text-fg transition">Cancel</button>
                 <button type="button" id="confirm-modal-confirm" class="flex-1 p-3 rounded-xl text-sm font-bold transition">Confirm</button>
             </div>
         </div>
     </div>
 
     <div id="exercise-modal" class="fixed inset-0 z-[60] hidden flex items-center justify-center modal-bg p-4 animate-fade-in">
-        <div class="bg-[#0a0a0a] w-full max-w-sm rounded-[24px] p-6 border border-[#1a1a1a] shadow-2xl relative flex flex-col max-h-[80vh]">
-            <button id="close-modal-btn" class="absolute top-6 right-6 text-gray-500 hover:text-white">
+        <div class="bg-surface w-full max-w-sm rounded-[24px] p-6 border border-line shadow-2xl relative flex flex-col max-h-[80vh]">
+            <button id="close-modal-btn" class="absolute top-6 right-6 text-subtle hover:text-fg">
                 <i class="fa-solid fa-times"></i>
             </button>
-            <h3 class="text-sm font-semibold uppercase tracking-widest text-gray-400 mb-6">Exercises</h3>
+            <h3 class="text-sm font-semibold uppercase tracking-widest text-muted mb-6">Exercises</h3>
             
             <div class="flex gap-2 mb-6">
                 <input type="text" id="new-exercise-input" placeholder="Add custom exercise..." class="input-field flex-1 p-3 rounded-xl text-sm">
-                <button id="add-exercise-btn" class="bg-white text-black px-5 rounded-xl transition hover:opacity-90"><i class="fa-solid fa-plus"></i></button>
+                <button id="add-exercise-btn" class="bg-fg text-bg px-5 rounded-xl transition hover:opacity-90"><i class="fa-solid fa-plus"></i></button>
             </div>
             
             <div id="manage-exercise-list" class="flex-1 overflow-y-auto pr-2 space-y-1">
@@ -89,64 +100,64 @@
             
             <div class="flex flex-col gap-4">
                 <div class="flex justify-between items-center">
-                    <span class="text-[10px] font-semibold text-gray-500 uppercase tracking-widest">Session Date</span>
-                    <div class="flex items-center bg-[#111] rounded-full px-4 py-1.5">
-                        <input type="date" id="input-date" class="bg-transparent text-white text-xs font-medium focus:outline-none">
+                    <span class="text-[10px] font-semibold text-subtle uppercase tracking-widest">Session Date</span>
+                    <div class="flex items-center bg-input rounded-full px-4 py-1.5">
+                        <input type="date" id="input-date" class="bg-transparent text-fg text-xs font-medium focus:outline-none">
                     </div>
                 </div>
-                <div id="date-warning-banner" class="hidden bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs px-4 py-2.5 rounded-2xl flex items-center gap-2">
-                    <i class="fa-solid fa-triangle-exclamation text-amber-400 text-[10px]"></i>
+                <div id="date-warning-banner" class="hidden bg-amber-500/10 border border-amber-500/30 text-warn text-xs px-4 py-2.5 rounded-2xl flex items-center gap-2">
+                    <i class="fa-solid fa-triangle-exclamation text-warn text-[10px]"></i>
                     <span id="date-warning-text">Logging to a different date</span>
                 </div>
 
-                <section class="collapsible-section bg-[#0a0a0a] border border-[#1a1a1a] rounded-3xl" data-collapsible="timer" data-default-expanded="true">
+                <section class="collapsible-section bg-surface border border-line rounded-3xl" data-collapsible="timer" data-default-expanded="true">
                     <button type="button" class="collapsible-header w-full flex justify-between items-center p-4 text-left" aria-expanded="true">
-                        <span class="text-[10px] text-gray-500 uppercase tracking-widest font-semibold">Rest Timer</span>
+                        <span class="text-[10px] text-subtle uppercase tracking-widest font-semibold">Rest Timer</span>
                         <div class="flex items-center gap-3">
-                            <div id="timer-display" class="text-xl font-mono text-gray-400 transition-colors duration-300">00:00</div>
-                            <i class="fa-solid fa-chevron-down text-gray-600 text-xs collapsible-chevron transition-transform"></i>
+                            <div id="timer-display" class="text-xl font-mono text-muted transition-colors duration-300">00:00</div>
+                            <i class="fa-solid fa-chevron-down text-faint text-xs collapsible-chevron transition-transform"></i>
                         </div>
                     </button>
                     <div class="collapsible-body px-4 pb-4">
                         <div class="flex justify-between gap-2">
-                            <button type="button" class="timer-btn flex-1 bg-[#111] hover:bg-[#222] text-gray-400 text-xs py-2.5 rounded-full transition-colors font-medium" data-time="30">30s</button>
-                            <button type="button" class="timer-btn flex-1 bg-[#111] hover:bg-[#222] text-gray-400 text-xs py-2.5 rounded-full transition-colors font-medium" data-time="60">60s</button>
-                            <button type="button" class="timer-btn flex-1 bg-[#111] hover:bg-[#222] text-gray-400 text-xs py-2.5 rounded-full transition-colors font-medium" data-time="90">90s</button>
-                            <button type="button" class="timer-btn flex-1 bg-[#111] hover:bg-[#222] text-gray-400 text-xs py-2.5 rounded-full transition-colors font-medium" data-time="120">120s</button>
+                            <button type="button" class="timer-btn flex-1 bg-input hover:bg-raised text-muted text-xs py-2.5 rounded-full transition-colors font-medium" data-time="30">30s</button>
+                            <button type="button" class="timer-btn flex-1 bg-input hover:bg-raised text-muted text-xs py-2.5 rounded-full transition-colors font-medium" data-time="60">60s</button>
+                            <button type="button" class="timer-btn flex-1 bg-input hover:bg-raised text-muted text-xs py-2.5 rounded-full transition-colors font-medium" data-time="90">90s</button>
+                            <button type="button" class="timer-btn flex-1 bg-input hover:bg-raised text-muted text-xs py-2.5 rounded-full transition-colors font-medium" data-time="120">120s</button>
                             <button type="button" id="timer-cancel" class="hidden flex-1 bg-red-500/10 text-red-500 text-xs py-2.5 rounded-full transition-colors font-medium" title="Cancel Timer">Stop</button>
                         </div>
                     </div>
                 </section>
             </div>
 
-            <section id="plan-section" class="bg-[#0a0a0a] border border-[#1a1a1a] rounded-3xl p-4">
+            <section id="plan-section" class="bg-surface border border-line rounded-3xl p-4">
                 <div class="flex justify-between items-center mb-4">
                     <div>
-                        <div class="text-[10px] text-gray-500 uppercase tracking-widest font-semibold">Today's Plan</div>
-                        <div id="plan-title" class="text-xl font-bold text-white mt-0.5">—</div>
+                        <div class="text-[10px] text-subtle uppercase tracking-widest font-semibold">Today's Plan</div>
+                        <div id="plan-title" class="text-xl font-bold text-fg mt-0.5">—</div>
                     </div>
-                    <button type="button" id="plan-week" class="text-[10px] font-semibold uppercase tracking-widest px-3 py-1.5 rounded-full bg-[#111] text-[#00E676] border border-[#222]" title="Change program start date">Week 1</button>
+                    <button type="button" id="plan-week" class="text-[10px] font-semibold uppercase tracking-widest px-3 py-1.5 rounded-full bg-input text-accent border border-raised" title="Change program start date">Week 1</button>
                 </div>
                 <div id="plan-body">
                     <div class="flex justify-center py-6"><div class="loading-spinner"></div></div>
                 </div>
             </section>
 
-            <section class="collapsible-section bg-[#0a0a0a] border border-[#1a1a1a] rounded-3xl" data-collapsible="bodyweight" data-default-expanded="true">
+            <section class="collapsible-section bg-surface border border-line rounded-3xl" data-collapsible="bodyweight" data-default-expanded="true">
                 <button type="button" class="collapsible-header w-full flex justify-between items-center p-4 text-left" aria-expanded="true">
-                    <span class="text-[10px] text-gray-500 uppercase tracking-widest font-semibold">Body Weight</span>
-                    <i class="fa-solid fa-chevron-down text-gray-600 text-xs collapsible-chevron transition-transform"></i>
+                    <span class="text-[10px] text-subtle uppercase tracking-widest font-semibold">Body Weight</span>
+                    <i class="fa-solid fa-chevron-down text-faint text-xs collapsible-chevron transition-transform"></i>
                 </button>
                 <div class="collapsible-body px-4 pb-4">
                     <div class="flex items-center justify-between gap-4">
                         <div>
-                            <div id="bw-status-label" class="text-[9px] text-gray-500 uppercase tracking-widest font-semibold">Not logged today</div>
-                            <div class="text-white text-sm font-medium mt-1" id="last-bw-display">—</div>
+                            <div id="bw-status-label" class="text-[9px] text-subtle uppercase tracking-widest font-semibold">Not logged today</div>
+                            <div class="text-fg text-sm font-medium mt-1" id="last-bw-display">—</div>
                         </div>
                         <div class="flex items-center gap-2">
                             <input type="number" id="input-bodyweight" placeholder="kg" step="0.1" min="0" 
-                                class="bg-[#111] w-20 p-3 rounded-xl text-center text-sm font-semibold focus:outline-none focus:ring-1 focus:ring-[#333] text-white disabled:opacity-50">
-                            <button id="btn-save-bw" class="bg-white text-black p-3 rounded-xl transition-colors hover:bg-gray-200" title="Save body weight">
+                                class="bg-input w-20 p-3 rounded-xl text-center text-sm font-semibold focus:outline-none focus:ring-1 focus:ring-ring text-fg disabled:opacity-50">
+                            <button id="btn-save-bw" class="bg-fg text-bg p-3 rounded-xl transition-colors hover:opacity-80" title="Save body weight">
                                 <i class="fa-solid fa-check text-xs"></i>
                             </button>
                         </div>
@@ -156,23 +167,23 @@
 
             <section class="collapsible-section animate-fade-in" data-collapsible="log-form" data-default-expanded="false">
                 <button type="button" class="collapsible-header w-full flex justify-between items-center py-2 text-left" aria-expanded="true">
-                    <span class="text-[10px] text-gray-500 uppercase tracking-widest font-semibold">Log Extra Exercise</span>
-                    <i class="fa-solid fa-chevron-down text-gray-600 text-xs collapsible-chevron transition-transform"></i>
+                    <span class="text-[10px] text-subtle uppercase tracking-widest font-semibold">Log Extra Exercise</span>
+                    <i class="fa-solid fa-chevron-down text-faint text-xs collapsible-chevron transition-transform"></i>
                 </button>
                 <div class="collapsible-body">
                 <form id="log-form" class="space-y-5">
                     <div>
                         <div class="flex justify-between items-center mb-2">
-                            <label class="text-[10px] text-gray-500 uppercase tracking-widest font-semibold ml-1 block">Exercise</label>
-                            <button type="button" id="open-manager-btn" class="text-[10px] text-gray-500 hover:text-white uppercase tracking-widest transition">
+                            <label class="text-[10px] text-subtle uppercase tracking-widest font-semibold ml-1 block">Exercise</label>
+                            <button type="button" id="open-manager-btn" class="text-[10px] text-subtle hover:text-fg uppercase tracking-widest transition">
                                 Edit List
                             </button>
                         </div>
                         <div class="relative">
-                            <select id="input-exercise" class="w-full bg-[#111] p-4 rounded-2xl text-base font-medium appearance-none text-white focus:outline-none focus:ring-1 focus:ring-[#333] transition" required>
+                            <select id="input-exercise" class="w-full bg-input p-4 rounded-2xl text-base font-medium appearance-none text-fg focus:outline-none focus:ring-1 focus:ring-ring transition" required>
                                 <option value="" disabled selected>Select Exercise</option>
                             </select>
-                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-subtle">
                                 <i class="fa-solid fa-chevron-down text-xs"></i>
                             </div>
                         </div>
@@ -180,16 +191,16 @@
                         <div id="recent-exercise-chips" class="hidden flex flex-wrap items-center gap-2 mt-2"></div>
 
                         <div class="flex justify-between items-start mt-2 ml-1 px-1">
-                            <div id="log-advice-1rm" class="text-[10px] text-[#00E676] font-mono font-semibold h-4"></div>
+                            <div id="log-advice-1rm" class="text-[10px] text-accent font-mono font-semibold h-4"></div>
                         </div>
-                        <div id="log-recent-history" class="mt-2 ml-2 space-y-1.5 border-l border-[#222] pl-3"></div>
+                        <div id="log-recent-history" class="mt-2 ml-2 space-y-1.5 border-l border-raised pl-3"></div>
                     </div>
 
                     <div class="grid grid-cols-3 gap-3" id="log-inputs-grid">
                         <div class="col-span-1" id="container-sets">
-                            <label class="text-[10px] text-gray-500 uppercase tracking-widest font-semibold ml-1 mb-2 block text-center">Sets</label>
+                            <label class="text-[10px] text-subtle uppercase tracking-widest font-semibold ml-1 mb-2 block text-center">Sets</label>
                             <div class="relative">
-                                <select id="input-set-count" class="w-full bg-[#111] p-4 rounded-2xl text-base font-semibold text-center appearance-none text-white focus:outline-none focus:ring-1 focus:ring-[#333]">
+                                <select id="input-set-count" class="w-full bg-input p-4 rounded-2xl text-base font-semibold text-center appearance-none text-fg focus:outline-none focus:ring-1 focus:ring-ring">
                                     <option value="1">1</option>
                                     <option value="2">2</option>
                                     <option value="3">3</option>
@@ -200,17 +211,17 @@
                             </div>
                         </div>
                         <div class="col-span-1" id="container-weight">
-                            <label id="label-weight" class="text-[10px] text-gray-500 uppercase tracking-widest font-semibold ml-1 mb-2 block text-center whitespace-nowrap">Load</label>
+                            <label id="label-weight" class="text-[10px] text-subtle uppercase tracking-widest font-semibold ml-1 mb-2 block text-center whitespace-nowrap">Load</label>
                             <input type="text" inputmode="text" id="input-weight" placeholder="kg / BW"
-                                class="w-full bg-[#111] p-4 rounded-2xl text-base font-semibold text-center text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-[#333] transition" required>
+                                class="w-full bg-input p-4 rounded-2xl text-base font-semibold text-center text-fg placeholder-faint focus:outline-none focus:ring-1 focus:ring-ring transition" required>
                             <div id="bw-hint" class="flex justify-center mt-2">
-                                <button type="button" id="bw-chip" class="text-[10px] font-semibold uppercase tracking-widest px-3 py-1 rounded-full bg-[#111] text-gray-400 hover:text-white hover:bg-[#1a1a1a] border border-[#222] transition">BW</button>
+                                <button type="button" id="bw-chip" class="text-[10px] font-semibold uppercase tracking-widest px-3 py-1 rounded-full bg-input text-muted hover:text-fg hover:bg-line border border-raised transition">BW</button>
                             </div>
                         </div>
                         <div class="col-span-1" id="container-reps">
-                            <label id="label-reps" class="text-[10px] text-gray-500 uppercase tracking-widest font-semibold ml-1 mb-2 block text-center">Reps</label>
+                            <label id="label-reps" class="text-[10px] text-subtle uppercase tracking-widest font-semibold ml-1 mb-2 block text-center">Reps</label>
                             <div class="relative">
-                                <select id="input-reps" class="w-full bg-[#111] p-4 rounded-2xl text-base font-semibold text-center appearance-none text-white focus:outline-none focus:ring-1 focus:ring-[#333]" required>
+                                <select id="input-reps" class="w-full bg-input p-4 rounded-2xl text-base font-semibold text-center appearance-none text-fg focus:outline-none focus:ring-1 focus:ring-ring" required>
                                     <option value="" disabled selected>-</option>
                                 </select>
                             </div>
@@ -226,17 +237,17 @@
 
             <section class="collapsible-section pt-2" data-collapsible="session-logs" data-default-expanded="true">
                 <button type="button" class="collapsible-header w-full flex justify-between items-center py-2 text-left" aria-expanded="true">
-                    <span class="text-[10px] text-gray-500 uppercase tracking-widest font-semibold">Session Logs</span>
-                    <i class="fa-solid fa-chevron-down text-gray-600 text-xs collapsible-chevron transition-transform"></i>
+                    <span class="text-[10px] text-subtle uppercase tracking-widest font-semibold">Session Logs</span>
+                    <i class="fa-solid fa-chevron-down text-faint text-xs collapsible-chevron transition-transform"></i>
                 </button>
                 <div class="collapsible-body">
                 <div class="mb-6 relative">
                     <input type="text" id="today-session-name" placeholder="Name this session..." 
-                        class="w-full bg-transparent text-xl font-bold text-white placeholder-gray-700 focus:outline-none pb-2 border-b border-[#222] focus:border-white transition-colors">
+                        class="w-full bg-transparent text-xl font-bold text-fg placeholder-fainter focus:outline-none pb-2 border-b border-raised focus:border-fg transition-colors">
                 </div>
 
                 <div id="today-list" class="space-y-0">
-                    <div class="text-center py-8 text-gray-600 text-xs tracking-wide">Ready to work.</div>
+                    <div class="text-center py-8 text-faint text-xs tracking-wide">Ready to work.</div>
                 </div>
                 </div>
             </section>
@@ -254,42 +265,42 @@
         <div id="view-progress" class="view-section hidden max-w-md mx-auto space-y-6">
             <h2 class="text-2xl font-bold mb-2">Insights</h2>
             
-            <div class="bg-[#0a0a0a] border border-[#1a1a1a] p-5 rounded-3xl">
+            <div class="bg-surface border border-line p-5 rounded-3xl">
                 <div class="relative mb-6">
-                    <select id="chart-exercise-select" class="w-full bg-[#111] p-3 rounded-xl text-sm font-medium appearance-none text-white focus:outline-none border border-transparent focus:border-[#333]">
+                    <select id="chart-exercise-select" class="w-full bg-input p-3 rounded-xl text-sm font-medium appearance-none text-fg focus:outline-none border border-transparent focus:border-ring">
                         <option value="">Select an exercise...</option>
                     </select>
-                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-subtle">
                         <i class="fa-solid fa-chevron-down text-xs"></i>
                     </div>
                 </div>
                 
                 <div class="relative h-80 w-full">
                     <canvas id="progressChart"></canvas>
-                    <div id="chart-empty-state" class="hidden absolute inset-0 flex flex-col items-center justify-center text-center px-6 bg-[#0a0a0a] rounded-2xl">
-                        <i class="fa-solid fa-chart-line text-2xl text-gray-600 mb-3"></i>
-                        <p class="text-sm text-gray-400 font-medium">No data yet</p>
-                        <p class="text-xs text-gray-600 mt-1">Log workouts to see your progress chart.</p>
+                    <div id="chart-empty-state" class="hidden absolute inset-0 flex flex-col items-center justify-center text-center px-6 bg-surface rounded-2xl">
+                        <i class="fa-solid fa-chart-line text-2xl text-faint mb-3"></i>
+                        <p class="text-sm text-muted font-medium">No data yet</p>
+                        <p class="text-xs text-faint mt-1">Log workouts to see your progress chart.</p>
                     </div>
                 </div>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
-                <div class="bg-[#0a0a0a] border border-[#1a1a1a] p-5 rounded-3xl">
-                    <div class="text-[10px] text-gray-500 uppercase tracking-widest font-semibold mb-1">Best 1RM (Est)</div>
-                    <div id="stat-est-1rm" class="text-2xl font-bold text-[#00E676]">-</div>
+                <div class="bg-surface border border-line p-5 rounded-3xl">
+                    <div class="text-[10px] text-subtle uppercase tracking-widest font-semibold mb-1">Best 1RM (Est)</div>
+                    <div id="stat-est-1rm" class="text-2xl font-bold text-accent">-</div>
                 </div>
-                <div class="bg-[#0a0a0a] border border-[#1a1a1a] p-5 rounded-3xl">
-                    <div class="text-[10px] text-gray-500 uppercase tracking-widest font-semibold mb-1">Peak Load</div>
-                    <div id="stat-max-weight" class="text-2xl font-bold text-white">-</div>
+                <div class="bg-surface border border-line p-5 rounded-3xl">
+                    <div class="text-[10px] text-subtle uppercase tracking-widest font-semibold mb-1">Peak Load</div>
+                    <div id="stat-max-weight" class="text-2xl font-bold text-fg">-</div>
                 </div>
-                <div class="bg-[#0a0a0a] border border-[#1a1a1a] p-5 rounded-3xl">
-                    <div class="text-[10px] text-gray-500 uppercase tracking-widest font-semibold mb-1">Total Vol</div>
-                    <div id="stat-total-volume" class="text-xl font-semibold text-gray-300">-</div>
+                <div class="bg-surface border border-line p-5 rounded-3xl">
+                    <div class="text-[10px] text-subtle uppercase tracking-widest font-semibold mb-1">Total Vol</div>
+                    <div id="stat-total-volume" class="text-xl font-semibold text-fg3">-</div>
                 </div>
-                <div class="bg-[#0a0a0a] border border-[#1a1a1a] p-5 rounded-3xl">
-                    <div class="text-[10px] text-gray-500 uppercase tracking-widest font-semibold mb-1">Total Reps</div>
-                    <div id="stat-total-reps" class="text-xl font-semibold text-gray-300">-</div>
+                <div class="bg-surface border border-line p-5 rounded-3xl">
+                    <div class="text-[10px] text-subtle uppercase tracking-widest font-semibold mb-1">Total Reps</div>
+                    <div id="stat-total-reps" class="text-xl font-semibold text-fg3">-</div>
                 </div>
             </div>
         </div>
@@ -297,30 +308,30 @@
         <div id="view-flexibility" class="view-section hidden max-w-md mx-auto space-y-8">
             <h2 class="text-2xl font-bold">Mobility</h2>
             
-            <div class="bg-[#0a0a0a] border border-[#1a1a1a] p-5 rounded-3xl flex flex-col gap-4">
+            <div class="bg-surface border border-line p-5 rounded-3xl flex flex-col gap-4">
                 <div class="flex justify-between items-center w-full">
                     <div class="flex flex-col">
-                        <h2 class="text-[10px] text-gray-500 uppercase tracking-widest font-semibold">Interval Timer</h2>
-                        <div id="flex-timer-status" class="text-[9px] text-[#00E676] font-medium hidden animate-pulse mt-0.5">Restarting in 5s...</div>
+                        <h2 class="text-[10px] text-subtle uppercase tracking-widest font-semibold">Interval Timer</h2>
+                        <div id="flex-timer-status" class="text-[9px] text-accent font-medium hidden animate-pulse mt-0.5">Restarting in 5s...</div>
                     </div>
-                    <div id="flex-timer-display" class="text-3xl font-mono text-gray-400 font-light transition-colors duration-300">00:00</div>
+                    <div id="flex-timer-display" class="text-3xl font-mono text-muted font-light transition-colors duration-300">00:00</div>
                 </div>
                 <div class="flex justify-between gap-2 mt-2">
-                    <button type="button" class="flex-timer-btn flex-1 bg-[#111] hover:bg-[#222] text-gray-400 text-xs py-2.5 rounded-full transition-colors font-medium" data-time="30">30s</button>
-                    <button type="button" class="flex-timer-btn flex-1 bg-[#111] hover:bg-[#222] text-gray-400 text-xs py-2.5 rounded-full transition-colors font-medium" data-time="45">45s</button>
-                    <button type="button" class="flex-timer-btn flex-1 bg-[#111] hover:bg-[#222] text-gray-400 text-xs py-2.5 rounded-full transition-colors font-medium" data-time="60">60s</button>
-                    <button type="button" class="flex-timer-btn flex-1 bg-[#111] hover:bg-[#222] text-gray-400 text-xs py-2.5 rounded-full transition-colors font-medium" data-time="90">90s</button>
+                    <button type="button" class="flex-timer-btn flex-1 bg-input hover:bg-raised text-muted text-xs py-2.5 rounded-full transition-colors font-medium" data-time="30">30s</button>
+                    <button type="button" class="flex-timer-btn flex-1 bg-input hover:bg-raised text-muted text-xs py-2.5 rounded-full transition-colors font-medium" data-time="45">45s</button>
+                    <button type="button" class="flex-timer-btn flex-1 bg-input hover:bg-raised text-muted text-xs py-2.5 rounded-full transition-colors font-medium" data-time="60">60s</button>
+                    <button type="button" class="flex-timer-btn flex-1 bg-input hover:bg-raised text-muted text-xs py-2.5 rounded-full transition-colors font-medium" data-time="90">90s</button>
                     <button type="button" id="flex-timer-cancel" class="hidden flex-1 bg-red-500/10 text-red-500 text-xs py-2.5 rounded-full transition-colors font-medium" title="Cancel Timer">Stop</button>
                 </div>
             </div>
 
-            <div class="flex p-1 bg-[#0a0a0a] rounded-full border border-[#111]">
-                <button id="btn-flex-set-1" class="flex-1 py-2.5 text-xs tracking-wide font-semibold rounded-full bg-white text-black shadow-sm transition-all">Routine 1</button>
-                <button id="btn-flex-set-2" class="flex-1 py-2.5 text-xs tracking-wide font-semibold rounded-full text-gray-500 hover:text-white transition-all">Routine 2</button>
+            <div class="flex p-1 bg-surface rounded-full border border-line-soft">
+                <button id="btn-flex-set-1" class="flex-1 py-2.5 text-xs tracking-wide font-semibold rounded-full bg-fg text-bg shadow-sm transition-all">Routine 1</button>
+                <button id="btn-flex-set-2" class="flex-1 py-2.5 text-xs tracking-wide font-semibold rounded-full text-subtle hover:text-fg transition-all">Routine 2</button>
             </div>
 
             <div class="">
-                <h3 id="flex-set-title" class="text-xs font-bold uppercase tracking-widest text-[#00E676] mb-4 pb-2 border-b border-[#111]">Routine 1</h3>
+                <h3 id="flex-set-title" class="text-xs font-bold uppercase tracking-widest text-accent mb-4 pb-2 border-b border-line-soft">Routine 1</h3>
                 <div id="flex-list" class="space-y-0">
                     </div>
             </div>
@@ -328,7 +339,7 @@
 
     </main>
 
-    <nav class="fixed bottom-0 left-0 right-0 z-50 bg-black/90 backdrop-blur-lg border-t border-[#111] pb-safe pt-2">
+    <nav class="fixed bottom-0 left-0 right-0 z-50 bg-bg/90 backdrop-blur-lg border-t border-line-soft pb-safe pt-2">
         <div class="grid grid-cols-4 items-center h-14 max-w-md mx-auto">
             <button class="nav-link active flex flex-col items-center justify-center w-full h-full gap-1.5" data-target="view-log">
                 <i class="fa-solid fa-pen-nib text-lg"></i>
