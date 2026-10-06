@@ -19,6 +19,7 @@ export const orderedDefaults = [
   'Leg Press',
   'Leg Extensions',
   'Leg Curl',
+  'Ponytail',
 ];
 
 export const cardioExercises = ['Bike/row conditioning', 'Running', ...programCardioExercises];
