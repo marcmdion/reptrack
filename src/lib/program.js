@@ -11,7 +11,7 @@ export const TOP_REPS = 12;
 // step = smallest weight jump available (used for rounding a deload)
 const EQUIP = {
   barbell: { inc: 2.5, step: 2.5 },
-  machine: { inc: 2.5, step: 2.5 },
+  machine: { inc: 0.5, step: 0.5 },
   dumbbell: { inc: 2.5, step: 2.5 },
   heavy: { inc: 5, step: 2.5 },
   bw: { inc: 0, step: 0 },
@@ -40,11 +40,17 @@ export function stepDumbbellWeight(weight, direction) {
   return w - 2.5;
 }
 
+function snapHalfKg(weight) {
+  return Math.round(Number(weight) * 2) / 2;
+}
+
 function bumpWeight(item, weight, direction = 1) {
   if (item.equip === 'dumbbell') return stepDumbbellWeight(weight, direction);
   const equip = EQUIP[item.equip] || {};
   const delta = direction > 0 ? equip.inc ?? equip.step : equip.step;
-  return Math.max(0, Number(weight) + direction * (delta || 0));
+  let next = Math.max(0, Number(weight) + direction * (delta || 0));
+  if (item.equip === 'machine') next = snapHalfKg(next);
+  return next;
 }
 
 const lift = (name, start, equip, extra = {}) => ({ name, start, equip, ...extra });

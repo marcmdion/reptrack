@@ -9,12 +9,15 @@ import {
   pastSessions,
   roundDownDumbbell,
   stepDumbbellWeight,
+  stepWeight,
   weekNumber,
 } from './program.js';
 
 const bench = { name: 'Bench Press', start: 35, equip: 'barbell' };
 const hack = { name: 'Hack Squat', start: 50, equip: 'heavy' };
 const curl = { name: 'Dumbbell Curl', start: 10, equip: 'dumbbell' };
+const pulldown = { name: 'Lat Pulldown', start: 35, equip: 'machine' };
+const pushdown = { name: 'Tricep Pushdown', start: 15, equip: 'machine', repsFirst: true };
 const raise = { name: 'Lateral Raise', start: 6, equip: 'dumbbell', repsFirst: true };
 const session = (dateId, weight, reps, targetReps = 10) => ({ dateId, weight, reps, targetSets: 3, targetReps });
 
@@ -61,6 +64,7 @@ describe('nextTarget', () => {
     expect(nextTarget(bench, [session('d1', 35, [10, 10, 10])])).toMatchObject({ weight: 37.5, reason: 'up' });
     expect(nextTarget(hack, [session('d1', 50, [10, 10, 10])]).weight).toBe(55);
     expect(nextTarget(curl, [session('d1', 10, [10, 10, 10])]).weight).toBe(12.5);
+    expect(nextTarget(pulldown, [session('d1', 35, [10, 10, 10])]).weight).toBe(35.5);
   });
 
   it('keeps weight after a missed set or a skipped set', () => {
@@ -126,6 +130,19 @@ describe('pastSessions', () => {
     const sessions = pastSessions(workouts, 'Bench Press', '2026-10-12', dateIdOf);
     expect(sessions).toHaveLength(1);
     expect(sessions[0]).toMatchObject({ dateId: '2026-10-05', reps: [10, 9] });
+  });
+});
+
+describe('machine weights', () => {
+  it('steps by 0.5 kg for progression and deload rounding', () => {
+    expect(stepWeight(pulldown, 35, 1)).toBe(35.5);
+    expect(stepWeight(pulldown, 35.5, -1)).toBe(35);
+    const stuck = [session('d3', 40, [9, 9, 9]), session('d2', 40, [9, 9, 9]), session('d1', 40, [9, 9, 9])];
+    expect(nextTarget(pulldown, stuck).weight).toBe(36);
+  });
+
+  it('adds 0.5 kg after reps-first machine work hits top reps', () => {
+    expect(nextTarget(pushdown, [session('d1', 15, [12, 12, 12], 12)])).toMatchObject({ weight: 15.5, reps: 10 });
   });
 });
 
