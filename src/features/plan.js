@@ -13,7 +13,7 @@ import {
   programDays,
   weekNumber,
   weekSchedule,
-  weightStep,
+  stepWeight,
 } from '../lib/program.js';
 import { getSelectedLogDateId, saveSessionName } from './sessions.js';
 
@@ -154,8 +154,7 @@ function onCardioTap(plan, item, itemIndex, dateId) {
 }
 
 function onWeightChange(item, dateId, current, direction) {
-  const step = weightStep(item);
-  const next = Math.max(0, Number(current) + direction * step);
+  const next = stepWeight(item, current, direction);
   weightOverrides[`${dateId}|${item.name}`] = next;
   const docs = todaysDocs(dateId, item.name);
   if (docs.length) {
