@@ -7,6 +7,8 @@ import {
   nextRepState,
   nextTarget,
   pastSessions,
+  roundDownDumbbell,
+  stepDumbbellWeight,
   weekNumber,
 } from './program.js';
 
@@ -58,7 +60,7 @@ describe('nextTarget', () => {
   it('adds weight after 3x10', () => {
     expect(nextTarget(bench, [session('d1', 35, [10, 10, 10])])).toMatchObject({ weight: 37.5, reason: 'up' });
     expect(nextTarget(hack, [session('d1', 50, [10, 10, 10])]).weight).toBe(55);
-    expect(nextTarget(curl, [session('d1', 10, [10, 10, 10])]).weight).toBe(12);
+    expect(nextTarget(curl, [session('d1', 10, [10, 10, 10])]).weight).toBe(12.5);
   });
 
   it('keeps weight after a missed set or a skipped set', () => {
@@ -71,7 +73,7 @@ describe('nextTarget', () => {
     expect(nextTarget(bench, stuck)).toMatchObject({ weight: 35, reason: 'deload' });
     const small = { name: 'Lateral Raise', start: 6, equip: 'dumbbell' };
     const stuckSmall = [session('d3', 6, [8]), session('d2', 6, [8]), session('d1', 6, [8])];
-    expect(nextTarget(small, stuckSmall).weight).toBe(4);
+    expect(nextTarget(small, stuckSmall).weight).toBe(5);
   });
 
   it('does not deload if weight changed within the 3 sessions', () => {
@@ -84,7 +86,7 @@ describe('add reps first', () => {
   it('adds a rep up to 12, then adds weight and resets to 10', () => {
     expect(nextTarget(raise, [session('d1', 6, [10, 10, 10])])).toMatchObject({ weight: 6, reps: 11, reason: 'reps' });
     expect(nextTarget(raise, [session('d1', 6, [11, 11, 11], 11)])).toMatchObject({ weight: 6, reps: 12 });
-    expect(nextTarget(raise, [session('d1', 6, [12, 12, 12], 12)])).toMatchObject({ weight: 8, reps: 10, reason: 'up' });
+    expect(nextTarget(raise, [session('d1', 6, [12, 12, 12], 12)])).toMatchObject({ weight: 7, reps: 10, reason: 'up' });
   });
 
   it('repeats the same rep target on a miss', () => {
@@ -124,6 +126,22 @@ describe('pastSessions', () => {
     const sessions = pastSessions(workouts, 'Bench Press', '2026-10-12', dateIdOf);
     expect(sessions).toHaveLength(1);
     expect(sessions[0]).toMatchObject({ dateId: '2026-10-05', reps: [10, 9] });
+  });
+});
+
+describe('dumbbell weights', () => {
+  it('steps by 1 kg below 10 and 2.5 kg from 10 upward', () => {
+    expect(stepDumbbellWeight(6, 1)).toBe(7);
+    expect(stepDumbbellWeight(9, 1)).toBe(10);
+    expect(stepDumbbellWeight(10, 1)).toBe(12.5);
+    expect(stepDumbbellWeight(12.5, -1)).toBe(10);
+    expect(stepDumbbellWeight(10, -1)).toBe(9);
+  });
+
+  it('rounds deloads down to valid plates', () => {
+    expect(roundDownDumbbell(5.4)).toBe(5);
+    expect(roundDownDumbbell(14.4)).toBe(12.5);
+    expect(roundDownDumbbell(10)).toBe(10);
   });
 });
 

@@ -12,10 +12,40 @@ export const TOP_REPS = 12;
 const EQUIP = {
   barbell: { inc: 2.5, step: 2.5 },
   machine: { inc: 2.5, step: 2.5 },
-  dumbbell: { inc: 2, step: 2 },
+  dumbbell: { inc: 2.5, step: 2.5 },
   heavy: { inc: 5, step: 2.5 },
   bw: { inc: 0, step: 0 },
 };
+
+const DUMBBELL_HEAVY_START = 10;
+
+/** Valid per-hand dumbbell: 1–9 kg in 1 kg steps; from 10 kg upward in 2.5 kg steps. */
+export function roundDownDumbbell(value) {
+  const v = Number(value);
+  if (v >= DUMBBELL_HEAVY_START) {
+    const n = Math.floor((v - DUMBBELL_HEAVY_START) / 2.5 + 1e-9);
+    return DUMBBELL_HEAVY_START + n * 2.5;
+  }
+  return Math.max(1, Math.floor(v + 1e-9));
+}
+
+export function stepDumbbellWeight(weight, direction) {
+  const w = Number(weight);
+  if (direction > 0) {
+    if (w < DUMBBELL_HEAVY_START - 1) return w + 1;
+    if (w < DUMBBELL_HEAVY_START) return DUMBBELL_HEAVY_START;
+    return w + 2.5;
+  }
+  if (w <= DUMBBELL_HEAVY_START) return Math.max(0, w - 1);
+  return w - 2.5;
+}
+
+function bumpWeight(item, weight, direction = 1) {
+  if (item.equip === 'dumbbell') return stepDumbbellWeight(weight, direction);
+  const equip = EQUIP[item.equip] || {};
+  const delta = direction > 0 ? equip.inc ?? equip.step : equip.step;
+  return Math.max(0, Number(weight) + direction * (delta || 0));
+}
 
 const lift = (name, start, equip, extra = {}) => ({ name, start, equip, ...extra });
 const cardio = (name, minutes) => ({ name, minutes, cardio: true });
@@ -163,11 +193,11 @@ export function nextTarget(item, sessions) {
   const last = sessions[0];
   const lastWeight = Number(last.weight);
   const lastReps = item.repsFirst ? last.targetReps || TARGET_REPS : TARGET_REPS;
-  const { inc, step } = EQUIP[item.equip];
+  const step = EQUIP[item.equip]?.step || 0;
 
   if (sessionSucceeded(last)) {
     if (item.repsFirst && lastReps < TOP_REPS) return { weight: lastWeight, reps: lastReps + 1, reason: 'reps' };
-    return { weight: lastWeight + inc, reps: TARGET_REPS, reason: 'up' };
+    return { weight: bumpWeight(item, lastWeight, 1), reps: TARGET_REPS, reason: 'up' };
   }
 
   const lastThree = sessions.slice(0, 3);
@@ -176,13 +206,27 @@ export function nextTarget(item, sessions) {
     lastThree.every(
       (s) => Number(s.weight) === lastWeight && (s.targetReps || TARGET_REPS) === last.targetReps && !sessionSucceeded(s),
     );
-  if (stuck) return { weight: roundDownTo(lastWeight * 0.9, step), reps: TARGET_REPS, reason: 'deload' };
+  if (stuck) {
+    const deload =
+      item.equip === 'dumbbell' ? roundDownDumbbell(lastWeight * 0.9) : roundDownTo(lastWeight * 0.9, step);
+    return { weight: deload, reps: TARGET_REPS, reason: 'deload' };
+  }
 
   return { weight: lastWeight, reps: lastReps, reason: 'same' };
 }
 
-export function weightStep(item) {
+export function weightStep(item, currentWeight, direction = 1) {
+  if (item.equip === 'dumbbell') {
+    const w = Number(currentWeight);
+    if (direction < 0) return w <= DUMBBELL_HEAVY_START ? 1 : 2.5;
+    if (w < DUMBBELL_HEAVY_START) return 1;
+    return 2.5;
+  }
   return EQUIP[item.equip]?.step || 0;
+}
+
+export function stepWeight(item, currentWeight, direction) {
+  return bumpWeight(item, currentWeight, direction);
 }
 
 // Tapping a set circle: empty -> target -> target-1 -> ... -> 5 -> empty
