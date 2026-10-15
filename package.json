@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "graphify:viz": "graphify . --code-only --no-viz && graphify cluster-only . && node scripts/copy-graphify-viz.mjs",
+    "prebuild": "node scripts/copy-graphify-viz.mjs",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run"

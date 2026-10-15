@@ -28,6 +28,19 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Build Graphify visualization
+        run: |
+          pip install graphifyy
+          graphify . --code-only --no-viz
+          graphify cluster-only .
+          mkdir -p public/graphify
+          cp graphify-out/graph.html public/graphify/graph.html
+
       - name: Build
         run: npm run build
 

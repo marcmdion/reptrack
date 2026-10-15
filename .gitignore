@@ -1,5 +1,6 @@
 node_modules/
 dist/
 graphify-out/
+public/graphify/*.html
 .DS_Store
 *.local
