@@ -29,6 +29,8 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,svg,woff2}'],
         globIgnores: ['**/graphify/**'],
         navigateFallback: '/reptrack/index.html',
+        // ponytail: denylist only — graphify HTML is a separate page, not the SPA shell
+        navigateFallbackDenylist: [/^\/reptrack\/graphify\//],
       },
     }),
   ],
