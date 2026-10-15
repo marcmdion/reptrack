@@ -30,7 +30,7 @@ export default defineConfig({
         globIgnores: ['**/graphify/**'],
         navigateFallback: '/reptrack/index.html',
         // ponytail: denylist only — graphify HTML is a separate page, not the SPA shell
-        navigateFallbackDenylist: [/^\/reptrack\/graphify\//],
+        navigateFallbackDenylist: [/^\/reptrack\/graphify(\/|$)/],
       },
     }),
   ],

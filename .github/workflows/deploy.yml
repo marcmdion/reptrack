@@ -40,6 +40,7 @@ jobs:
           graphify cluster-only .
           mkdir -p public/graphify
           cp graphify-out/graph.html public/graphify/graph.html
+          cp graphify-out/graph.html public/graphify/index.html
 
       - name: Build
         run: npm run build
