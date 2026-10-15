@@ -27,6 +27,7 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,svg,woff2}'],
+        globIgnores: ['**/graphify/**'],
         navigateFallback: '/reptrack/index.html',
       },
     }),
