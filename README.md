@@ -49,6 +49,17 @@ Push to `main` triggers GitHub Actions: builds the site and commits output to `d
 | `npm run preview` | Preview production build |
 | `npm test` | Run unit tests |
 
+## Graphify (code exploration)
+
+This repo includes [Graphify](https://github.com/Graphify-Labs/graphify) for AI-assisted codebase navigation (`.cursor/rules/graphify.mdc`, `.agents/skills/graphify/`).
+
+```bash
+pip install graphifyy
+graphify cursor install --project   # already done in-repo; re-run after upgrading graphify
+```
+
+In Cursor, run `/graphify .` once to build the local graph (`graphify-out/`, gitignored). Then use `graphify query`, `graphify path`, and `graphify explain` before large file greps.
+
 ## Project structure
 
 ```
