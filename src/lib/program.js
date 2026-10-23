@@ -186,6 +186,23 @@ export function pastSessions(workouts, exercise, beforeDateId, dateIdOf) {
   return Object.values(byDay).sort((a, b) => (a.dateId < b.dateId ? 1 : -1));
 }
 
+/** Most recent program day before `beforeDateId`, up to `maxSets` sets in order. */
+export function lastSessionSets(workouts, exercise, beforeDateId, dateIdOf, maxSets = 3) {
+  const sessions = pastSessions(workouts, exercise, beforeDateId, dateIdOf);
+  if (!sessions.length) return null;
+  const lastDate = sessions[0].dateId;
+  const sets = workouts
+    .filter((w) => w.program === PROGRAM_ID && w.exercise === exercise && dateIdOf(w) === lastDate)
+    .sort((a, b) => (a.setIndex ?? 0) - (b.setIndex ?? 0))
+    .slice(0, maxSets);
+  if (!sets.length) return null;
+  return {
+    dateId: lastDate,
+    weight: sets[0].weight,
+    reps: sets.map((w) => Number(w.reps) || 0),
+  };
+}
+
 export function sessionSucceeded(session) {
   const target = session.targetReps || TARGET_REPS;
   return session.reps.length >= session.targetSets && session.reps.every((r) => r >= target);

@@ -9,6 +9,7 @@ import {
   getDayPlan,
   nextRepState,
   nextTarget,
+  lastSessionSets,
   pastSessions,
   programDays,
   weekNumber,
@@ -220,8 +221,9 @@ function renderLiftRow(plan, item, index, liftNumber, dateId) {
   info.append(meta);
   top.append(info);
 
+  const rightCol = el('div', 'flex flex-col items-end shrink-0 gap-1.5');
   if (target.weight !== 'BW') {
-    const weightBox = el('div', 'flex items-center gap-1 shrink-0');
+    const weightBox = el('div', 'flex items-center gap-1');
     const minus = el('button', 'w-8 h-8 rounded-full bg-input text-muted hover:text-fg text-xs');
     minus.type = 'button';
     minus.innerHTML = '<i class="fa-solid fa-minus"></i>';
@@ -233,10 +235,25 @@ function renderLiftRow(plan, item, index, liftNumber, dateId) {
     plus.setAttribute('aria-label', `Raise ${item.name} weight`);
     plus.onclick = () => onWeightChange(item, dateId, target.weight, 1);
     weightBox.append(minus, el('span', 'text-sm font-bold text-fg w-[4.5rem] text-center', formatKg(target.weight, item.each)), plus);
-    top.append(weightBox);
+    rightCol.append(weightBox);
   } else {
-    top.append(el('span', 'text-sm font-bold text-fg shrink-0', 'BW'));
+    rightCol.append(el('span', 'text-sm font-bold text-fg', 'BW'));
   }
+
+  const last = lastSessionSets(state.workoutsCache, item.name, dateId, dateIdOf, 3);
+  if (last) {
+    const lastBox = el('div', 'text-right max-w-[5.5rem]');
+    lastBox.append(el('div', 'text-[9px] uppercase tracking-widest text-faint font-semibold', 'Last'));
+    if (last.weight !== 'BW') {
+      lastBox.append(
+        el('div', 'text-[10px] text-subtle font-mono leading-tight', formatKg(last.weight, item.each)),
+      );
+    }
+    lastBox.append(el('div', 'text-[10px] text-muted font-mono leading-tight', last.reps.join(' · ')));
+    rightCol.append(lastBox);
+  }
+
+  top.append(rightCol);
   row.append(top);
 
   const circles = el('div', 'flex gap-3 mt-3');
