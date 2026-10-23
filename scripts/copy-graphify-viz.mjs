@@ -7,7 +7,8 @@ const dest = `${destDir}/graph.html`;
 if (existsSync(src)) {
   mkdirSync(destDir, { recursive: true });
   cpSync(src, dest);
-  console.log('Copied Graphify viz to public/graphify/graph.html');
+  cpSync(src, `${destDir}/index.html`);
+  console.log('Copied Graphify viz to public/graphify/graph.html (+ index.html)');
 } else if (!existsSync(dest)) {
   console.warn('Skip Graphify viz: run `npm run graphify:viz` locally or build on CI.');
 }
