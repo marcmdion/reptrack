@@ -31,17 +31,25 @@ const dateIdOf = (w) => (w.timestamp ? getLocalDateId(w.timestamp.toDate()) : nu
 
 export async function loadProgramSettings() {
   if (!state.currentUser) return;
+  // ponytail: render with a local default first — don't block UI on Firestore get/set
+  if (!startDateId) {
+    startDateId = defaultStartDateId(getLocalDateId());
+    renderPlan();
+  }
   try {
     const snap = await getDoc(settingsRef());
-    startDateId = snap.exists() ? snap.data().startDate : null;
-    if (!startDateId) {
-      startDateId = defaultStartDateId(getLocalDateId());
-      await setDoc(settingsRef(), { startDate: startDateId }, { merge: true });
+    const remote = snap.exists() ? snap.data().startDate : null;
+    if (remote) {
+      if (remote !== startDateId) {
+        startDateId = remote;
+        renderPlan();
+      }
+      return;
     }
+    await setDoc(settingsRef(), { startDate: startDateId }, { merge: true });
   } catch {
-    startDateId = startDateId || defaultStartDateId(getLocalDateId());
+    renderPlan();
   }
-  renderPlan();
 }
 
 function currentDayKey(dateId) {
@@ -313,7 +321,15 @@ export function renderPlan() {
   const container = document.getElementById('plan-body');
   const titleEl = document.getElementById('plan-title');
   const weekEl = document.getElementById('plan-week');
-  if (!container || !state.currentUser || !startDateId) return;
+  if (!container || !titleEl || !weekEl) return;
+  if (!state.currentUser) {
+    container.innerHTML =
+      '<div class="text-center py-6 text-subtle text-sm">Sign in to see today\'s plan.</div>';
+    titleEl.textContent = '—';
+    weekEl.textContent = 'Week —';
+    return;
+  }
+  if (!startDateId) return;
 
   const dateId = getSelectedLogDateId();
   const dayKey = currentDayKey(dateId);
