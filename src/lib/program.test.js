@@ -4,6 +4,7 @@ import {
   dayKeyForDate,
   defaultStartDateId,
   getDayPlan,
+  lastSessionSets,
   nextRepState,
   nextTarget,
   pastSessions,
@@ -130,6 +131,23 @@ describe('pastSessions', () => {
     const sessions = pastSessions(workouts, 'Bench Press', '2026-10-12', dateIdOf);
     expect(sessions).toHaveLength(1);
     expect(sessions[0]).toMatchObject({ dateId: '2026-10-05', reps: [10, 9] });
+  });
+});
+
+describe('lastSessionSets', () => {
+  it('returns up to three reps from the most recent prior day, ordered by setIndex', () => {
+    const dateIdOf = (w) => w.d;
+    const workouts = [
+      { program: PROGRAM_ID, exercise: 'Bench Press', weight: 37.5, reps: 10, setIndex: 0, d: '2026-10-10' },
+      { program: PROGRAM_ID, exercise: 'Bench Press', weight: 37.5, reps: 9, setIndex: 1, d: '2026-10-10' },
+      { program: PROGRAM_ID, exercise: 'Bench Press', weight: 37.5, reps: 8, setIndex: 2, d: '2026-10-10' },
+      { program: PROGRAM_ID, exercise: 'Bench Press', weight: 35, reps: 10, setIndex: 0, d: '2026-10-03' },
+    ];
+    expect(lastSessionSets(workouts, 'Bench Press', '2026-10-12', dateIdOf)).toEqual({
+      dateId: '2026-10-10',
+      weight: 37.5,
+      reps: [10, 9, 8],
+    });
   });
 });
 
