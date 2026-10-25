@@ -62,9 +62,9 @@ describe('nextTarget', () => {
   });
 
   it('adds weight after 3x10', () => {
-    expect(nextTarget(bench, [session('d1', 35, [10, 10, 10])])).toMatchObject({ weight: 37.5, reason: 'up' });
+    expect(nextTarget(bench, [session('d1', 35, [10, 10, 10])])).toMatchObject({ weight: 35.5, reason: 'up' });
     expect(nextTarget(hack, [session('d1', 50, [10, 10, 10])]).weight).toBe(55);
-    expect(nextTarget(curl, [session('d1', 10, [10, 10, 10])]).weight).toBe(12.5);
+    expect(nextTarget(curl, [session('d1', 10, [10, 10, 10])]).weight).toBe(10.5);
     expect(nextTarget(pulldown, [session('d1', 35, [10, 10, 10])]).weight).toBe(35.5);
   });
 
@@ -75,7 +75,7 @@ describe('nextTarget', () => {
 
   it('deloads 10% after 3 stuck sessions', () => {
     const stuck = [session('d3', 40, [10, 9, 8]), session('d2', 40, [10, 10, 9]), session('d1', 40, [9, 9, 9])];
-    expect(nextTarget(bench, stuck)).toMatchObject({ weight: 35, reason: 'deload' });
+    expect(nextTarget(bench, stuck)).toMatchObject({ weight: 36, reason: 'deload' });
     const small = { name: 'Lateral Raise', start: 6, equip: 'dumbbell' };
     const stuckSmall = [session('d3', 6, [8]), session('d2', 6, [8]), session('d1', 6, [8])];
     expect(nextTarget(small, stuckSmall).weight).toBe(5);
@@ -151,6 +151,15 @@ describe('lastSessionSets', () => {
   });
 });
 
+describe('barbell weights', () => {
+  it('steps by 0.5 kg for progression and deload rounding', () => {
+    expect(stepWeight(bench, 35, 1)).toBe(35.5);
+    expect(stepWeight(bench, 35.5, -1)).toBe(35);
+    const stuck = [session('d3', 40, [9, 9, 9]), session('d2', 40, [9, 9, 9]), session('d1', 40, [9, 9, 9])];
+    expect(nextTarget(bench, stuck).weight).toBe(36);
+  });
+});
+
 describe('machine weights', () => {
   it('steps by 0.5 kg for progression and deload rounding', () => {
     expect(stepWeight(pulldown, 35, 1)).toBe(35.5);
@@ -165,17 +174,17 @@ describe('machine weights', () => {
 });
 
 describe('dumbbell weights', () => {
-  it('steps by 1 kg below 10 and 2.5 kg from 10 upward', () => {
+  it('steps by 1 kg below 10 and 0.5 kg from 10 upward', () => {
     expect(stepDumbbellWeight(6, 1)).toBe(7);
     expect(stepDumbbellWeight(9, 1)).toBe(10);
-    expect(stepDumbbellWeight(10, 1)).toBe(12.5);
-    expect(stepDumbbellWeight(12.5, -1)).toBe(10);
+    expect(stepDumbbellWeight(10, 1)).toBe(10.5);
+    expect(stepDumbbellWeight(10.5, -1)).toBe(10);
     expect(stepDumbbellWeight(10, -1)).toBe(9);
   });
 
   it('rounds deloads down to valid plates', () => {
     expect(roundDownDumbbell(5.4)).toBe(5);
-    expect(roundDownDumbbell(14.4)).toBe(12.5);
+    expect(roundDownDumbbell(14.4)).toBe(14);
     expect(roundDownDumbbell(10)).toBe(10);
   });
 });
