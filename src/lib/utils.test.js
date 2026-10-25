@@ -1,9 +1,27 @@
 import { describe, it, expect } from 'vitest';
-import { escapeHtml, getLocalDateId, groupProgramSets, workoutMatchesDateId } from './utils.js';
+import {
+  escapeHtml,
+  getLocalDateId,
+  groupProgramSets,
+  timerRemainingSeconds,
+  workoutMatchesDateId,
+} from './utils.js';
 
 describe('escapeHtml', () => {
   it('escapes HTML special characters', () => {
     expect(escapeHtml('<script>"\'&')).toBe('&lt;script&gt;&quot;&#39;&amp;');
+  });
+});
+
+describe('timerRemainingSeconds', () => {
+  it('counts down from wall-clock end time', () => {
+    const now = 1_000_000;
+    const endsAt = now + 90_500;
+    expect(timerRemainingSeconds(endsAt, now)).toBe(91);
+    expect(timerRemainingSeconds(endsAt, now + 30_000)).toBe(61);
+    expect(timerRemainingSeconds(endsAt, now + 90_000)).toBe(1);
+    expect(timerRemainingSeconds(endsAt, now + 90_500)).toBe(0);
+    expect(timerRemainingSeconds(endsAt, now + 120_000)).toBe(0);
   });
 });
 
