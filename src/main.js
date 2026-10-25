@@ -29,12 +29,4 @@ initPlan();
 initTheme();
 initMobility();
 
-const graphifyLink = document.getElementById('graphify-link');
-if (graphifyLink) {
-  graphifyLink.href = new URL(
-    'graphify/graph.html',
-    `${window.location.origin}${import.meta.env.BASE_URL}`,
-  ).href;
-}
-
 registerSW({ immediate: true });
