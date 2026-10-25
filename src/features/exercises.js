@@ -10,6 +10,14 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase.js';
 import { orderedDefaults } from '../lib/constants.js';
+import {
+  EXERCISE_ALIASES,
+  exerciseNameKey,
+  normalizeExerciseList,
+  normalizeExerciseName,
+  summarizeCanonicalMigration,
+} from '../lib/exerciseNames.js';
+import { confirmDialog } from '../lib/confirm.js';
 import { state } from '../lib/state.js';
 import { showToast } from '../lib/utils.js';
 
@@ -39,17 +47,10 @@ export async function fetchUserExercises() {
     } else {
       const savedList = data.list || [];
 
-      const uniqueList = [];
-      const seen = new Set();
-      for (const ex of savedList) {
-        const lower = ex.toLowerCase();
-        if (!seen.has(lower)) {
-          seen.add(lower);
-          uniqueList.push(ex);
-        }
-      }
+      const uniqueList = normalizeExerciseList(savedList);
+      const seen = new Set(uniqueList.map((ex) => exerciseNameKey(ex)));
 
-      const missingDefaults = orderedDefaults.filter((def) => !seen.has(def.toLowerCase()));
+      const missingDefaults = orderedDefaults.filter((def) => !seen.has(exerciseNameKey(def)));
       state.availableExercises = [...uniqueList, ...missingDefaults];
     }
   } else {
@@ -62,11 +63,11 @@ export async function fetchUserExercises() {
 
 async function addExerciseToList(name) {
   if (!name) return;
-  name = name.trim();
-  name = name.charAt(0).toUpperCase() + name.slice(1);
+  const trimmed = name.trim();
+  const aliasKey = trimmed.toLowerCase();
+  name = EXERCISE_ALIASES[aliasKey] ?? trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
 
-  const lowerName = name.toLowerCase();
-  const exists = state.availableExercises.some((ex) => ex.toLowerCase() === lowerName);
+  const exists = state.availableExercises.some((ex) => exerciseNameKey(ex) === exerciseNameKey(name));
 
   if (!exists) {
     state.availableExercises.push(name);
@@ -113,8 +114,8 @@ async function moveExercise(index, direction) {
 }
 
 async function performRename(oldName, newNameRaw) {
-  let newName = newNameRaw.trim();
-  const existingMatch = state.availableExercises.find((e) => e.toLowerCase() === newName.toLowerCase());
+  let newName = normalizeExerciseName(newNameRaw.trim());
+  const existingMatch = state.availableExercises.find((e) => exerciseNameKey(e) === exerciseNameKey(newName));
   if (existingMatch) newName = existingMatch;
 
   try {
@@ -150,6 +151,80 @@ async function performRename(oldName, newNameRaw) {
   } catch {
     showToast('Error updating records', true);
     renderManagerList();
+  }
+}
+
+function formatRenamePreview(renames) {
+  const lines = Object.entries(renames).map(([label, count]) => `${label} (${count})`);
+  return lines.length ? lines.join('\n') : 'None';
+}
+
+function updateExerciseSyncPreview() {
+  const preview = document.getElementById('exercise-sync-preview');
+  const btn = document.getElementById('exercise-sync-btn');
+  if (!preview || !btn) return;
+  const summary = summarizeCanonicalMigration(state.workoutsCache, state.availableExercises);
+  if (!summary.needsUpdate) {
+    preview.textContent = 'All logged exercises and your list already use program names.';
+    btn.disabled = true;
+    btn.classList.add('opacity-50', 'cursor-not-allowed');
+    return;
+  }
+  btn.disabled = false;
+  btn.classList.remove('opacity-50', 'cursor-not-allowed');
+  const parts = [];
+  if (summary.workoutUpdates) parts.push(`${summary.workoutUpdates} workout log(s)`);
+  if (summary.listUpdates) parts.push(`${summary.listUpdates} list entry(ies)`);
+  preview.textContent = `Will update ${parts.join(' and ')} to match Today's Plan names.`;
+  preview.dataset.detail = [
+    summary.workoutUpdates ? `Workouts:\n${formatRenamePreview(summary.workoutRenames)}` : '',
+    summary.listUpdates ? `Exercise list:\n${formatRenamePreview(summary.listRenames)}` : '',
+  ]
+    .filter(Boolean)
+    .join('\n\n');
+}
+
+async function runCanonicalNameMigration() {
+  const summary = summarizeCanonicalMigration(state.workoutsCache, state.availableExercises);
+  if (!summary.needsUpdate) {
+    showToast('Exercise names are already up to date');
+    updateExerciseSyncPreview();
+    return summary;
+  }
+
+  const detail = document.getElementById('exercise-sync-preview')?.dataset.detail || '';
+  const ok = await confirmDialog({
+    title: 'Update exercise names?',
+    message: `${document.getElementById('exercise-sync-preview')?.textContent || ''}${detail ? `\n\n${detail}` : ''}\n\nThis updates your Firestore data. Safe to run again.`,
+    confirmLabel: 'Update names',
+    danger: false,
+  });
+  if (!ok) return summary;
+
+  try {
+    showToast('Updating exercise names...');
+    const workoutsRef = collection(db, 'users', state.currentUser.uid, 'workouts');
+    const promises = [];
+    let updatedWorkouts = 0;
+    state.workoutsCache.forEach((w) => {
+      if (!w.id || !w.exercise) return;
+      const canonical = normalizeExerciseName(w.exercise);
+      if (canonical === w.exercise) return;
+      updatedWorkouts += 1;
+      promises.push(updateDoc(doc(workoutsRef, w.id), { exercise: canonical }));
+    });
+    await Promise.all(promises);
+
+    state.availableExercises = normalizeExerciseList(state.availableExercises);
+    await setDoc(getSettingsRef(), { list: state.availableExercises, listVersion: 2 }, { merge: true });
+    updateExerciseDropdown();
+    renderManagerList();
+    updateExerciseSyncPreview();
+    showToast(`Updated ${updatedWorkouts} workout log(s)`);
+    return { ...summary, updatedWorkouts };
+  } catch {
+    showToast('Error updating exercise names', true);
+    throw new Error('migration failed');
   }
 }
 
@@ -226,7 +301,10 @@ export function initExercises() {
   document.getElementById('open-manager-btn').addEventListener('click', () => {
     modal.classList.remove('hidden');
     renderManagerList();
+    updateExerciseSyncPreview();
   });
+
+  document.getElementById('exercise-sync-btn')?.addEventListener('click', () => runCanonicalNameMigration());
   document.getElementById('close-modal-btn').addEventListener('click', () => modal.classList.add('hidden'));
 
   document.getElementById('add-exercise-btn').addEventListener('click', () => {

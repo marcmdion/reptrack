@@ -40,6 +40,12 @@ Push to `main` triggers GitHub Actions: builds the site and commits output to `d
 2. Add your web app config in `src/lib/firebase.js`.
 3. Restrict the API key HTTP referrers for your Pages URL (see `scripts/restrict-firebase-api-key.sh`).
 
+## Exercise names (Plan vs manual log)
+
+Today's Plan uses singular lift names from `src/lib/program.js` (for example **Lateral Raise**, **Leg Extension**). The manual exercise list previously used plural variants for some lifts. New manual logs are normalized on save via `src/lib/exerciseNames.js`, and charts/history group legacy and canonical names together before you migrate.
+
+**Backfill existing Firestore data (signed in):** open **Exercises** (manage list) → **Sync with Today's Plan** → review the preview counts → **Update stored exercise names**. The migration is idempotent and only rewrites workouts whose stored `exercise` field differs from the canonical name, plus dedupes your saved exercise list.
+
 ## Scripts
 
 | Command | Description |

@@ -1,4 +1,5 @@
 import { cardioExercises, chartColors } from '../lib/constants.js';
+import { normalizeExerciseName, uniqueCanonicalExerciseNames, workoutsForExercise } from '../lib/exerciseNames.js';
 import { state } from '../lib/state.js';
 
 let chartSelectWired = false;
@@ -93,7 +94,7 @@ export async function ensureChartReady() {
 
 export function updateChartData(workouts) {
   state.allWorkoutsCache = workouts;
-  const exercises = [...new Set(workouts.map((w) => w.exercise))].sort();
+  const exercises = uniqueCanonicalExerciseNames(workouts);
   const exerciseSelect = document.getElementById('chart-exercise-select');
   const previousSel = exerciseSelect.value;
 
@@ -105,10 +106,14 @@ export function updateChartData(workouts) {
     exerciseSelect.appendChild(opt);
   });
 
-  if (previousSel && (previousSel === 'All' || previousSel === 'Body Weight' || exercises.includes(previousSel))) {
-    exerciseSelect.value = previousSel;
+  const previousCanon =
+    previousSel && previousSel !== 'All' && previousSel !== 'Body Weight'
+      ? normalizeExerciseName(previousSel)
+      : previousSel;
+  if (previousSel && (previousSel === 'All' || previousSel === 'Body Weight' || exercises.includes(previousCanon))) {
+    exerciseSelect.value = previousCanon === previousSel ? previousSel : previousCanon;
   } else if (!state.chartDefaultApplied && workouts.length > 0) {
-    exerciseSelect.value = workouts[0].exercise;
+    exerciseSelect.value = normalizeExerciseName(workouts[0].exercise);
     state.chartDefaultApplied = true;
   } else {
     exerciseSelect.value = 'All';
@@ -125,7 +130,7 @@ export function renderChart(targetExercise) {
       ? [...state.allWorkoutsCache, ...state.bodyweightCache]
       : targetExercise === 'Body Weight'
         ? state.bodyweightCache
-        : state.allWorkoutsCache.filter((w) => w.exercise === targetExercise);
+        : workoutsForExercise(state.allWorkoutsCache, targetExercise);
 
   if (relData.length === 0) {
     state.chartInstance.data.labels = [];
@@ -153,11 +158,11 @@ export function renderChart(targetExercise) {
 
   if (targetExercise !== 'Body Weight') {
     const exList =
-      targetExercise === 'All' ? [...new Set(state.allWorkoutsCache.map((w) => w.exercise))] : [targetExercise];
+      targetExercise === 'All' ? uniqueCanonicalExerciseNames(state.allWorkoutsCache) : [normalizeExerciseName(targetExercise)];
     exList.forEach((ex, i) => {
       const map = {};
-      state.allWorkoutsCache
-        .filter((w) => w.exercise === ex && w.timestamp)
+      workoutsForExercise(state.allWorkoutsCache, ex)
+        .filter((w) => w.timestamp)
         .forEach((w) => {
           const d = w.timestamp.toDate().toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
           const v = w.weight === 'BW' ? null : parseFloat(w.weight);
@@ -213,9 +218,7 @@ export function renderChart(targetExercise) {
     let vol = 0;
     let reps = 0;
     const isCardio = cardioExercises.includes(targetExercise);
-    state.allWorkoutsCache
-      .filter((w) => w.exercise === targetExercise)
-      .forEach((w) => {
+    workoutsForExercise(state.allWorkoutsCache, targetExercise).forEach((w) => {
         const weight = w.weight === 'BW' ? 0 : parseFloat(w.weight);
         const r = w.reps || 0;
         const s = w.setCount || 1;

@@ -2,6 +2,7 @@ import { collection, addDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase.js';
 import { cardioExercises } from '../lib/constants.js';
 import { state } from '../lib/state.js';
+import { normalizeExerciseName, workoutsForExercise } from '../lib/exerciseNames.js';
 import { getLocalDateId, setButtonLoading, showToast } from '../lib/utils.js';
 
 function syncDateWarningBanner() {
@@ -72,7 +73,7 @@ export function initLogging() {
       bwHint?.classList.remove('hidden');
     }
 
-    const lastLog = state.workoutsCache.find((w) => w.exercise === selectedExercise);
+    const lastLog = workoutsForExercise(state.workoutsCache, selectedExercise)[0];
     if (lastLog) {
       if (!isCardio) {
         document.getElementById('input-set-count').value = lastLog.setCount || 1;
@@ -88,7 +89,7 @@ export function initLogging() {
     }
 
     const adviceEl = document.getElementById('log-advice-1rm');
-    const exWorkouts = state.workoutsCache.filter((w) => w.exercise === selectedExercise);
+    const exWorkouts = workoutsForExercise(state.workoutsCache, selectedExercise);
 
     if (isCardio) adviceEl.textContent = '';
     else {
@@ -141,7 +142,7 @@ export function initLogging() {
   document.getElementById('log-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!state.currentUser) return;
-    const exercise = document.getElementById('input-exercise').value;
+    const exercise = normalizeExerciseName(document.getElementById('input-exercise').value);
     const weight = document.getElementById('input-weight').value;
     const reps = document.getElementById('input-reps').value;
     const numSets = document.getElementById('input-set-count').value;

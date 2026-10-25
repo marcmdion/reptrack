@@ -1,3 +1,5 @@
+import { normalizeExerciseName } from './exerciseNames.js';
+
 export function escapeHtml(value) {
   return String(value ?? '')
     .replace(/&/g, '&amp;')
@@ -25,9 +27,10 @@ export function groupProgramSets(items) {
       out.push(item);
       return;
     }
-    const key = `${getLocalDateId(item.timestamp.toDate())}|${item.exercise}`;
+    const exercise = normalizeExerciseName(item.exercise);
+    const key = `${getLocalDateId(item.timestamp.toDate())}|${exercise}`;
     if (!groups[key]) {
-      groups[key] = { type: 'set-group', key, exercise: item.exercise, sets: [] };
+      groups[key] = { type: 'set-group', key, exercise, sets: [] };
       out.push(groups[key]);
     }
     groups[key].sets.push(item);
