@@ -1,4 +1,5 @@
 import { state } from '../lib/state.js';
+import { playSoftBeep, primeSoftBeep } from '../lib/softBeep.js';
 import { timerRemainingSeconds } from '../lib/utils.js';
 import { ensureChartReady } from './chart.js';
 
@@ -50,11 +51,13 @@ export function initNavigation() {
       rT = null;
       rEndsAt = 0;
       navigator.vibrate?.([200, 100, 200]);
+      playSoftBeep();
     }
   }
 
   document.querySelectorAll('.timer-btn').forEach((b) =>
     b.addEventListener('click', (e) => {
+      primeSoftBeep();
       clearInterval(rT);
       rEndsAt = Date.now() + parseInt(e.target.dataset.time, 10) * 1000;
       updateRT();
