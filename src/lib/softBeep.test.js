@@ -1,5 +1,19 @@
 import { describe, it, expect } from 'vitest';
-import { armSoftBeep, beepDelaySeconds, confirmSoftBeep, disarmSoftBeep } from './softBeep.js';
+import {
+  armSoftBeep,
+  beepDelaySeconds,
+  confirmSoftBeep,
+  disarmSoftBeep,
+  softBeepOffsets,
+  SOFT_BEEP_COUNT,
+} from './softBeep.js';
+
+describe('softBeepOffsets', () => {
+  it('schedules three evenly spaced beeps', () => {
+    expect(SOFT_BEEP_COUNT).toBe(3);
+    expect(softBeepOffsets()).toEqual([0, 0.3, 0.6]);
+  });
+});
 
 describe('beepDelaySeconds', () => {
   it('maps wall-clock end to non-negative seconds', () => {

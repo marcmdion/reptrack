@@ -1,7 +1,15 @@
-/** One short sine beep via Web Audio (mixes with other apps; no exclusive audio focus). */
+/** Short sine beeps via Web Audio (mixes with other apps; no exclusive audio focus). */
 let ctx = null;
 let cancelScheduled = null;
 let scheduledFired = false;
+
+export const SOFT_BEEP_COUNT = 3;
+/** Seconds between the start of each beep in a rest-complete pattern. */
+export const SOFT_BEEP_INTERVAL_S = 0.3;
+
+export function softBeepOffsets(count = SOFT_BEEP_COUNT) {
+  return Array.from({ length: count }, (_, i) => i * SOFT_BEEP_INTERVAL_S);
+}
 
 function getCtx() {
   const AC = typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext);
@@ -44,14 +52,18 @@ function playToneAt(c, startTime) {
   return osc;
 }
 
+function playSoftBeepsAt(c, baseStartTime) {
+  return softBeepOffsets().map((offset) => playToneAt(c, baseStartTime + offset));
+}
+
 function playSoftBeepNow() {
   const c = getCtx();
   if (!c) return;
   unlockAudioContext(c);
-  playToneAt(c, c.currentTime);
+  playSoftBeepsAt(c, c.currentTime);
 }
 
-/** User gesture: unlock audio and schedule beep at wall-clock end (Safari/iOS). */
+/** User gesture: unlock audio and schedule beeps at wall-clock end (Safari/iOS). */
 export function armSoftBeep(endsAtMs) {
   scheduledFired = false;
   cancelScheduled?.();
@@ -64,22 +76,29 @@ export function armSoftBeep(endsAtMs) {
 
   const delay = beepDelaySeconds(endsAtMs);
   const startTime = c.currentTime + delay;
-  const osc = playToneAt(c, startTime);
+  const oscillators = playSoftBeepsAt(c, startTime);
   let cancelled = false;
+  let completed = 0;
 
   cancelScheduled = () => {
     if (cancelled) return;
     cancelled = true;
-    try {
-      osc.stop(0);
-    } catch {
-      // already stopped
+    for (const osc of oscillators) {
+      try {
+        osc.stop(0);
+      } catch {
+        // already stopped
+      }
     }
   };
 
-  osc.onended = () => {
-    if (!cancelled) scheduledFired = true;
-  };
+  for (const osc of oscillators) {
+    osc.onended = () => {
+      if (cancelled) return;
+      completed += 1;
+      if (completed === oscillators.length) scheduledFired = true;
+    };
+  }
 }
 
 export function disarmSoftBeep() {
@@ -88,7 +107,7 @@ export function disarmSoftBeep() {
   scheduledFired = false;
 }
 
-/** Wall-clock timer finished: beep if the scheduled tone did not fire (e.g. suspended context). */
+/** Wall-clock timer finished: beep if the scheduled tones did not all fire (e.g. suspended context). */
 export function confirmSoftBeep() {
   if (!scheduledFired) playSoftBeepNow();
   disarmSoftBeep();
