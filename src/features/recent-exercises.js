@@ -1,3 +1,4 @@
+import { exerciseNameKey, normalizeExerciseName } from '../lib/exerciseNames.js';
 import { state } from '../lib/state.js';
 
 const MAX_CHIPS = 6;
@@ -9,9 +10,11 @@ export function updateRecentExerciseChips() {
   const seen = new Set();
   const recent = [];
   for (const workout of state.workoutsCache) {
-    const name = workout.exercise;
-    if (!name || seen.has(name)) continue;
-    seen.add(name);
+    const name = normalizeExerciseName(workout.exercise);
+    if (!name) continue;
+    const key = exerciseNameKey(name);
+    if (seen.has(key)) continue;
+    seen.add(key);
     recent.push(name);
     if (recent.length >= MAX_CHIPS) break;
   }
