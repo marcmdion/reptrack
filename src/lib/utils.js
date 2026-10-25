@@ -13,6 +13,11 @@ export function getLocalDateId(dateObj = new Date()) {
   return `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
 }
 
+/** Wall-clock seconds left until endsAtMs (0 once elapsed). */
+export function timerRemainingSeconds(endsAtMs, nowMs = Date.now()) {
+  return Math.max(0, Math.ceil((endsAtMs - nowMs) / 1000));
+}
+
 export function workoutMatchesDateId(workout, dateId) {
   if (!workout?.timestamp || !dateId) return false;
   return getLocalDateId(workout.timestamp.toDate()) === dateId;

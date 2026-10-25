@@ -1,4 +1,5 @@
 import { state } from '../lib/state.js';
+import { timerRemainingSeconds } from '../lib/utils.js';
 import { ensureChartReady } from './chart.js';
 
 export function initNavigation() {
@@ -22,10 +23,12 @@ export function initNavigation() {
   });
 
   let rT = null;
-  let rRem = 0;
+  let rEndsAt = 0;
+
   function updateRT() {
     const d = document.getElementById('timer-display');
     const c = document.getElementById('timer-cancel');
+    const rRem = timerRemainingSeconds(rEndsAt);
     if (rRem <= 0) {
       d.textContent = '00:00';
       d.className = 'text-xl font-mono text-muted';
@@ -38,24 +41,33 @@ export function initNavigation() {
     d.className = `text-xl font-mono text-accent ${rRem <= 5 ? 'animate-pulse' : ''}`;
     c.classList.remove('hidden');
   }
+
+  function onRTTick() {
+    const rRem = timerRemainingSeconds(rEndsAt);
+    updateRT();
+    if (rRem <= 0) {
+      clearInterval(rT);
+      rT = null;
+      rEndsAt = 0;
+      navigator.vibrate?.([200, 100, 200]);
+    }
+  }
+
   document.querySelectorAll('.timer-btn').forEach((b) =>
     b.addEventListener('click', (e) => {
       clearInterval(rT);
-      rRem = parseInt(e.target.dataset.time);
+      rEndsAt = Date.now() + parseInt(e.target.dataset.time, 10) * 1000;
       updateRT();
-      rT = setInterval(() => {
-        rRem--;
-        updateRT();
-        if (rRem <= 0) {
-          clearInterval(rT);
-          navigator.vibrate?.([200, 100, 200]);
-        }
-      }, 1000);
+      rT = setInterval(onRTTick, 250);
     }),
   );
   document.getElementById('timer-cancel').addEventListener('click', () => {
     clearInterval(rT);
-    rRem = 0;
+    rT = null;
+    rEndsAt = 0;
     updateRT();
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (rT && document.visibilityState === 'visible') onRTTick();
   });
 }
