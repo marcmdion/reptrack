@@ -1,5 +1,5 @@
 import { state } from '../lib/state.js';
-import { playSoftBeep, primeSoftBeep } from '../lib/softBeep.js';
+import { armSoftBeep, confirmSoftBeep, disarmSoftBeep } from '../lib/softBeep.js';
 import { timerRemainingSeconds } from '../lib/utils.js';
 import { ensureChartReady } from './chart.js';
 
@@ -51,15 +51,16 @@ export function initNavigation() {
       rT = null;
       rEndsAt = 0;
       navigator.vibrate?.([200, 100, 200]);
-      playSoftBeep();
+      confirmSoftBeep();
     }
   }
 
   document.querySelectorAll('.timer-btn').forEach((b) =>
     b.addEventListener('click', (e) => {
-      primeSoftBeep();
       clearInterval(rT);
-      rEndsAt = Date.now() + parseInt(e.target.dataset.time, 10) * 1000;
+      const seconds = parseInt(e.currentTarget.dataset.time, 10);
+      rEndsAt = Date.now() + seconds * 1000;
+      armSoftBeep(rEndsAt);
       updateRT();
       rT = setInterval(onRTTick, 250);
     }),
@@ -68,6 +69,7 @@ export function initNavigation() {
     clearInterval(rT);
     rT = null;
     rEndsAt = 0;
+    disarmSoftBeep();
     updateRT();
   });
   document.addEventListener('visibilitychange', () => {
