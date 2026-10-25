@@ -10,21 +10,22 @@ export const TOP_REPS = 12;
 
 // step = smallest weight jump available (used for rounding a deload)
 const EQUIP = {
-  barbell: { inc: 2.5, step: 2.5 },
+  barbell: { inc: 0.5, step: 0.5 },
   machine: { inc: 0.5, step: 0.5 },
-  dumbbell: { inc: 2.5, step: 2.5 },
+  dumbbell: { inc: 0.5, step: 0.5 },
   heavy: { inc: 5, step: 2.5 },
   bw: { inc: 0, step: 0 },
 };
 
 const DUMBBELL_HEAVY_START = 10;
+const DUMBBELL_HEAVY_STEP = 0.5;
 
-/** Valid per-hand dumbbell: 1–9 kg in 1 kg steps; from 10 kg upward in 2.5 kg steps. */
+/** Valid per-hand dumbbell: 1–9 kg in 1 kg steps; from 10 kg upward in 0.5 kg steps. */
 export function roundDownDumbbell(value) {
   const v = Number(value);
   if (v >= DUMBBELL_HEAVY_START) {
-    const n = Math.floor((v - DUMBBELL_HEAVY_START) / 2.5 + 1e-9);
-    return DUMBBELL_HEAVY_START + n * 2.5;
+    const n = Math.floor((v - DUMBBELL_HEAVY_START) / DUMBBELL_HEAVY_STEP + 1e-9);
+    return DUMBBELL_HEAVY_START + n * DUMBBELL_HEAVY_STEP;
   }
   return Math.max(1, Math.floor(v + 1e-9));
 }
@@ -34,10 +35,10 @@ export function stepDumbbellWeight(weight, direction) {
   if (direction > 0) {
     if (w < DUMBBELL_HEAVY_START - 1) return w + 1;
     if (w < DUMBBELL_HEAVY_START) return DUMBBELL_HEAVY_START;
-    return w + 2.5;
+    return w + DUMBBELL_HEAVY_STEP;
   }
   if (w <= DUMBBELL_HEAVY_START) return Math.max(0, w - 1);
-  return w - 2.5;
+  return w - DUMBBELL_HEAVY_STEP;
 }
 
 function snapHalfKg(weight) {
@@ -49,7 +50,7 @@ function bumpWeight(item, weight, direction = 1) {
   const equip = EQUIP[item.equip] || {};
   const delta = direction > 0 ? equip.inc ?? equip.step : equip.step;
   let next = Math.max(0, Number(weight) + direction * (delta || 0));
-  if (item.equip === 'machine') next = snapHalfKg(next);
+  if (item.equip === 'machine' || item.equip === 'barbell') next = snapHalfKg(next);
   return next;
 }
 
@@ -241,9 +242,9 @@ export function nextTarget(item, sessions) {
 export function weightStep(item, currentWeight, direction = 1) {
   if (item.equip === 'dumbbell') {
     const w = Number(currentWeight);
-    if (direction < 0) return w <= DUMBBELL_HEAVY_START ? 1 : 2.5;
+    if (direction < 0) return w <= DUMBBELL_HEAVY_START ? 1 : DUMBBELL_HEAVY_STEP;
     if (w < DUMBBELL_HEAVY_START) return 1;
-    return 2.5;
+    return DUMBBELL_HEAVY_STEP;
   }
   return EQUIP[item.equip]?.step || 0;
 }
