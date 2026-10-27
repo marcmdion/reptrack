@@ -32,4 +32,12 @@ describe('softBeep', () => {
       confirmSoftBeep();
     }).not.toThrow();
   });
+
+  it('confirmSoftBeep is idempotent for one rest cycle', () => {
+    expect(() => {
+      armSoftBeep(Date.now() + 30_000);
+      confirmSoftBeep();
+      confirmSoftBeep();
+    }).not.toThrow();
+  });
 });
