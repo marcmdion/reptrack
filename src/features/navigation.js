@@ -3,6 +3,22 @@ import { armSoftBeep, confirmSoftBeep, disarmSoftBeep } from '../lib/softBeep.js
 import { timerRemainingSeconds } from '../lib/utils.js';
 import { ensureChartReady } from './chart.js';
 
+async function maybeNotifyRestComplete() {
+  if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+  const options = {
+    body: 'Ready for your next set',
+    tag: 'reptrack-rest',
+    renotify: true,
+  };
+  try {
+    const reg = await navigator.serviceWorker?.ready;
+    if (reg) await reg.showNotification('Rest complete', options);
+    else new Notification('Rest complete', options);
+  } catch {
+    // Notifications unavailable
+  }
+}
+
 export function initNavigation() {
   document.querySelectorAll('.nav-link').forEach((link) => {
     link.addEventListener('click', async () => {
@@ -25,6 +41,20 @@ export function initNavigation() {
 
   let rT = null;
   let rEndsAt = 0;
+  let restRunning = false;
+  let wallRestTimeout = null;
+
+  function clearRestWallClock() {
+    if (wallRestTimeout != null) {
+      clearTimeout(wallRestTimeout);
+      wallRestTimeout = null;
+    }
+  }
+
+  function scheduleRestWallClock() {
+    clearRestWallClock();
+    wallRestTimeout = setTimeout(completeRestTimer, Math.max(0, rEndsAt - Date.now()));
+  }
 
   function updateRT() {
     const d = document.getElementById('timer-display');
@@ -43,36 +73,50 @@ export function initNavigation() {
     c.classList.remove('hidden');
   }
 
-  function onRTTick() {
-    const rRem = timerRemainingSeconds(rEndsAt);
+  function completeRestTimer() {
+    if (!restRunning) return;
+    if (timerRemainingSeconds(rEndsAt) > 0) return;
+    restRunning = false;
+    clearInterval(rT);
+    rT = null;
+    clearRestWallClock();
+    rEndsAt = 0;
+    navigator.vibrate?.([200, 100, 200]);
+    confirmSoftBeep();
+    maybeNotifyRestComplete();
     updateRT();
-    if (rRem <= 0) {
-      clearInterval(rT);
-      rT = null;
-      rEndsAt = 0;
-      navigator.vibrate?.([200, 100, 200]);
-      confirmSoftBeep();
-    }
+  }
+
+  function onRTTick() {
+    updateRT();
+    if (timerRemainingSeconds(rEndsAt) <= 0) completeRestTimer();
   }
 
   document.querySelectorAll('.timer-btn').forEach((b) =>
     b.addEventListener('click', (e) => {
       clearInterval(rT);
+      clearRestWallClock();
+      restRunning = false;
+      disarmSoftBeep();
       const seconds = parseInt(e.currentTarget.dataset.time, 10);
       rEndsAt = Date.now() + seconds * 1000;
+      restRunning = true;
       armSoftBeep(rEndsAt);
+      scheduleRestWallClock();
       updateRT();
       rT = setInterval(onRTTick, 250);
     }),
   );
   document.getElementById('timer-cancel').addEventListener('click', () => {
+    restRunning = false;
     clearInterval(rT);
     rT = null;
+    clearRestWallClock();
     rEndsAt = 0;
     disarmSoftBeep();
     updateRT();
   });
   document.addEventListener('visibilitychange', () => {
-    if (rT && document.visibilityState === 'visible') onRTTick();
+    if (restRunning && document.visibilityState === 'visible') onRTTick();
   });
 }
