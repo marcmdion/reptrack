@@ -5,8 +5,15 @@ export default defineConfig({
   base: '/reptrack/',
   plugins: [
     VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.js',
       registerType: 'autoUpdate',
       includeAssets: ['pwa-icon.svg'],
+      injectManifest: {
+        globPatterns: ['**/*.{js,css,html,ico,svg,woff2}'],
+        globIgnores: ['**/graphify/**'],
+      },
       manifest: {
         name: 'MD RepTrack',
         short_name: 'RepTrack',
@@ -25,12 +32,8 @@ export default defineConfig({
           },
         ],
       },
-      workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,svg,woff2}'],
-        globIgnores: ['**/graphify/**'],
-        navigateFallback: '/reptrack/index.html',
-        // ponytail: denylist only — graphify HTML is a separate page, not the SPA shell
-        navigateFallbackDenylist: [/^\/reptrack\/graphify(\/|$)/],
+      devOptions: {
+        enabled: false,
       },
     }),
   ],
