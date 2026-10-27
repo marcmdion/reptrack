@@ -3,15 +3,10 @@ let ctx = null;
 let cancelScheduled = null;
 let scheduledFired = false;
 let armed = false;
-let keepAliveEl = null;
 
 export const SOFT_BEEP_COUNT = 3;
 /** Seconds between the start of each beep in a rest-complete pattern. */
 export const SOFT_BEEP_INTERVAL_S = 0.3;
-
-/** ponytail: tiny silent WAV — keeps iOS/Safari in “media playing” during rest so scheduled tones fire in background */
-const SILENT_WAV =
-  'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQQAAAAAAA==';
 
 export function softBeepOffsets(count = SOFT_BEEP_COUNT) {
   return Array.from({ length: count }, (_, i) => i * SOFT_BEEP_INTERVAL_S);
@@ -43,27 +38,6 @@ function unlockAudioContext(c) {
   }
 }
 
-function startKeepAlive() {
-  if (typeof Audio === 'undefined') return;
-  if (!keepAliveEl) {
-    keepAliveEl = new Audio(SILENT_WAV);
-    keepAliveEl.loop = true;
-    keepAliveEl.volume = 0.01;
-    keepAliveEl.setAttribute('playsinline', '');
-  }
-  void keepAliveEl.play().catch(() => {});
-}
-
-function stopKeepAlive() {
-  if (!keepAliveEl) return;
-  keepAliveEl.pause();
-  try {
-    keepAliveEl.currentTime = 0;
-  } catch {
-    // ignored
-  }
-}
-
 function playToneAt(c, startTime) {
   const osc = c.createOscillator();
   const gain = c.createGain();
@@ -90,7 +64,7 @@ function playSoftBeepNow() {
   playSoftBeepsAt(c, c.currentTime);
 }
 
-/** User gesture: unlock audio and schedule beeps at wall-clock end (Safari/iOS). */
+/** User gesture: unlock audio and schedule beeps at wall-clock end (desktop fallback). */
 export function armSoftBeep(endsAtMs) {
   armed = true;
   scheduledFired = false;
@@ -101,7 +75,6 @@ export function armSoftBeep(endsAtMs) {
   if (!c) return;
 
   unlockAudioContext(c);
-  startKeepAlive();
 
   const delay = beepDelaySeconds(endsAtMs);
   const startTime = c.currentTime + delay;
@@ -136,7 +109,6 @@ export function disarmSoftBeep() {
   cancelScheduled?.();
   cancelScheduled = null;
   scheduledFired = false;
-  stopKeepAlive();
 }
 
 /** Wall-clock timer finished: beep if the scheduled tones did not all fire (e.g. suspended context). */
@@ -146,7 +118,6 @@ export function confirmSoftBeep() {
   armed = false;
   cancelScheduled?.();
   cancelScheduled = null;
-  stopKeepAlive();
   scheduledFired = false;
   if (needPlay) playSoftBeepNow();
 }
