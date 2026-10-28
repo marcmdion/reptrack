@@ -46,6 +46,18 @@ Today's Plan uses singular lift names from `src/lib/program.js` (for example **L
 
 **Backfill existing Firestore data (signed in):** open **Exercises** (manage list) → **Sync with Today's Plan** → review the preview counts → **Update stored exercise names**. The migration is idempotent and only rewrites workouts whose stored `exercise` field differs from the canonical name, plus dedupes your saved exercise list.
 
+## Rest timer and audio (especially iOS)
+
+While a rest is counting down, RepTrack does **not** hold an audio session or play silent media. Podcasts and other apps keep playing.
+
+When rest ends:
+
+- **In the foreground:** three short beeps via Web Audio (about one second total; may briefly duck other audio).
+- **In the background:** enable **“Rest alerts when app is in background”** on the timer card so the service worker can show a **notification** at rest end. iOS Safari often suspends page timers and Web Audio in the background; notifications are the reliable alert there. Beeps usually play when you return to the app if the scheduled tones did not fire.
+- **Vibration** when the device supports `navigator.vibrate`.
+
+RepTrack intentionally does not play a multi-minute encoded track during rest (that monopolized audio and interrupted podcasts). There is no perfect way on iOS to guarantee audible beeps in the background without either holding media playback or using notifications.
+
 ## Scripts
 
 | Command | Description |
