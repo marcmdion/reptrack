@@ -6,16 +6,11 @@ const BEEP_DURATION_S = 0.17;
 const BEEP_PEAK = 0.12;
 const DEFAULT_SAMPLE_RATE = 22050;
 
-let audioEl = null;
-let objectUrl = null;
-let cancelled = false;
-let beepsFinished = false;
-
-/** Total media length: rest silence then three soft beeps. */
-export function restCountdownMediaSeconds(restSeconds) {
+/** Length of the short end-only beep WAV (three spaced tones). */
+export function restEndBeepMediaSeconds() {
   const offsets = softBeepOffsets(SOFT_BEEP_COUNT);
   const last = offsets[offsets.length - 1] ?? 0;
-  return restSeconds + last + BEEP_DURATION_S;
+  return last + BEEP_DURATION_S;
 }
 
 function mixBeepInto(channel, sampleRate, startSecond) {
@@ -32,19 +27,13 @@ function mixBeepInto(channel, sampleRate, startSecond) {
   }
 }
 
-/** Build a WAV blob: silence for restSeconds, then the standard three beeps. */
-export function encodeRestCountdownWav(restSeconds, sampleRate = DEFAULT_SAMPLE_RATE) {
-  const totalSeconds = restCountdownMediaSeconds(restSeconds);
+/** Build a WAV blob with only the standard three rest-complete beeps (~0.8s). */
+export function encodeRestEndBeepsWav(sampleRate = DEFAULT_SAMPLE_RATE) {
+  const totalSeconds = restEndBeepMediaSeconds();
   const numSamples = Math.ceil(totalSeconds * sampleRate);
   const channel = new Float32Array(numSamples);
-  const restSamples = Math.floor(restSeconds * sampleRate);
-  // ponytail: iOS may suspend “digital zero” segments — sub-audible dither keeps media playback alive
-  for (let i = 0; i < restSamples; i += 1) {
-    channel[i] = (Math.random() * 2 - 1) * 0.00005;
-  }
-  const beepsAt = restSeconds;
   for (let i = 0; i < SOFT_BEEP_COUNT; i += 1) {
-    mixBeepInto(channel, sampleRate, beepsAt + i * SOFT_BEEP_INTERVAL_S);
+    mixBeepInto(channel, sampleRate, i * SOFT_BEEP_INTERVAL_S);
   }
   return float32ToWavBlob(channel, sampleRate);
 }
@@ -78,54 +67,24 @@ function float32ToWavBlob(samples, sampleRate) {
   return new Blob([buffer], { type: 'audio/wav' });
 }
 
-function revokeObjectUrl() {
-  if (objectUrl) {
-    URL.revokeObjectURL(objectUrl);
-    objectUrl = null;
-  }
-}
-
-export function restCountdownBeepsFinished() {
-  return beepsFinished;
-}
-
-/** Start background-safe rest alert (HTML media timeline). Returns false if play() rejected. */
-export async function armRestCountdown(restSeconds, { onBeepsFinished } = {}) {
-  disarmRestCountdown();
-  cancelled = false;
-  beepsFinished = false;
-
+/** Play ~0.8s of beeps via HTMLAudioElement (fallback when Web Audio is unavailable). */
+export async function playRestEndBeeps() {
   if (typeof Audio === 'undefined' || typeof Blob === 'undefined') return false;
 
-  const blob = encodeRestCountdownWav(restSeconds);
-  objectUrl = URL.createObjectURL(blob);
-  audioEl = new Audio(objectUrl);
+  const blob = encodeRestEndBeepsWav();
+  const url = URL.createObjectURL(blob);
+  const audioEl = new Audio(url);
   audioEl.setAttribute('playsinline', '');
   audioEl.volume = 1;
-  audioEl.onended = () => {
-    if (cancelled) return;
-    beepsFinished = true;
-    onBeepsFinished?.();
-    disarmRestCountdown();
-  };
+
+  const cleanup = () => URL.revokeObjectURL(url);
 
   try {
     await audioEl.play();
+    audioEl.onended = cleanup;
     return true;
   } catch {
-    disarmRestCountdown();
+    cleanup();
     return false;
   }
-}
-
-export function disarmRestCountdown() {
-  cancelled = true;
-  if (audioEl) {
-    audioEl.onended = null;
-    audioEl.pause();
-    audioEl.removeAttribute('src');
-    audioEl.load();
-    audioEl = null;
-  }
-  revokeObjectUrl();
 }

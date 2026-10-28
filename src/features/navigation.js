@@ -6,7 +6,6 @@ import {
   restNotificationsEnabled,
   syncRestAlarmToServiceWorker,
 } from '../lib/restAlarmSw.js';
-import { armRestCountdown, disarmRestCountdown, restCountdownBeepsFinished } from '../lib/restCountdownAudio.js';
 import { armSoftBeep, confirmSoftBeep, disarmSoftBeep } from '../lib/softBeep.js';
 import { timerRemainingSeconds } from '../lib/utils.js';
 import { ensureChartReady } from './chart.js';
@@ -61,7 +60,6 @@ export function initNavigation() {
   let rEndsAt = 0;
   let restRunning = false;
   let wallRestTimeout = null;
-  let restUsesMedia = false;
 
   function clearRestWallClock() {
     if (wallRestTimeout != null) {
@@ -94,17 +92,13 @@ export function initNavigation() {
 
   function completeRestTimer() {
     if (!restRunning) return;
-    if (restUsesMedia && timerRemainingSeconds(rEndsAt) > 0) return;
     restRunning = false;
-    restUsesMedia = false;
     clearInterval(rT);
     rT = null;
     clearRestWallClock();
     rEndsAt = 0;
     void cancelRestAlarmInServiceWorker();
-    disarmRestCountdown();
-    if (!restCountdownBeepsFinished()) confirmSoftBeep();
-    else disarmSoftBeep();
+    confirmSoftBeep();
     navigator.vibrate?.([200, 100, 200]);
     void maybeNotifyRestComplete();
     updateRT();
@@ -114,29 +108,22 @@ export function initNavigation() {
 
   function onRTTick() {
     updateRT();
-    if (!restUsesMedia && timerRemainingSeconds(rEndsAt) <= 0) completeRestTimer();
+    if (timerRemainingSeconds(rEndsAt) <= 0) completeRestTimer();
   }
 
-  async function startRestTimer(seconds) {
+  function startRestTimer(seconds) {
     clearInterval(rT);
     clearRestWallClock();
     restRunning = false;
-    restUsesMedia = false;
-    disarmRestCountdown();
     disarmSoftBeep();
     void cancelRestAlarmInServiceWorker();
 
     rEndsAt = Date.now() + seconds * 1000;
     restRunning = true;
 
-    const mediaOk = await armRestCountdown(seconds, { onBeepsFinished: () => completeRestTimer() });
-    if (mediaOk) {
-      restUsesMedia = true;
-    } else {
-      armSoftBeep(rEndsAt);
-      scheduleRestWallClock();
-      void syncRestAlarmToServiceWorker(rEndsAt);
-    }
+    armSoftBeep(rEndsAt);
+    scheduleRestWallClock();
+    void syncRestAlarmToServiceWorker(rEndsAt);
 
     updateRT();
     rT = setInterval(onRTTick, 250);
@@ -145,17 +132,15 @@ export function initNavigation() {
   document.querySelectorAll('.timer-btn').forEach((b) =>
     b.addEventListener('click', (e) => {
       const seconds = parseInt(e.currentTarget.dataset.time, 10);
-      void startRestTimer(seconds);
+      startRestTimer(seconds);
     }),
   );
   document.getElementById('timer-cancel').addEventListener('click', () => {
     restRunning = false;
-    restUsesMedia = false;
     clearInterval(rT);
     rT = null;
     clearRestWallClock();
     rEndsAt = 0;
-    disarmRestCountdown();
     disarmSoftBeep();
     void cancelRestAlarmInServiceWorker();
     updateRT();

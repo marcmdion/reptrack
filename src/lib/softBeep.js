@@ -59,7 +59,10 @@ function playSoftBeepsAt(c, baseStartTime) {
 
 function playSoftBeepNow() {
   const c = getCtx();
-  if (!c) return;
+  if (!c) {
+    void import('./restCountdownAudio.js').then(({ playRestEndBeeps }) => playRestEndBeeps());
+    return;
+  }
   unlockAudioContext(c);
   playSoftBeepsAt(c, c.currentTime);
 }
