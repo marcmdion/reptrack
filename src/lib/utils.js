@@ -59,16 +59,41 @@ export function setButtonLoading(button, isLoading, loadingText = 'Saving...') {
   }
 }
 
-export function showToast(msg, isError = false) {
+export function showToast(msg, isError = false, action) {
   const div = document.createElement('div');
   div.className = `fixed top-20 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-full text-sm font-bold shadow-2xl z-[100] animate-fade-in ${isError ? 'bg-red-500 text-white' : 'bg-accent text-on-accent'}`;
-  div.textContent = msg;
+  const message = document.createElement('span');
+  message.setAttribute('role', isError ? 'alert' : 'status');
+  message.textContent = msg;
+  div.append(message);
+  if (action) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'ml-3 min-h-8 px-2 underline';
+    button.textContent = action.label;
+    button.addEventListener('click', () => {
+      dismiss();
+      action.run();
+    });
+    div.classList.add('flex', 'items-center', 'whitespace-nowrap');
+    div.append(button);
+  }
   document.body.appendChild(div);
-  setTimeout(() => {
+  const timeout = setTimeout(() => {
+    if (action) {
+      dismiss();
+      return;
+    }
     div.style.opacity = '0';
     div.style.transition = 'opacity 0.3s ease';
     setTimeout(() => div.remove(), 300);
-  }, 3000);
+  }, action ? 8000 : 3000);
+
+  function dismiss() {
+    clearTimeout(timeout);
+    div.remove();
+  }
+  return dismiss;
 }
 
 // Legacy inline handlers referenced window.showToast

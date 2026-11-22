@@ -7,7 +7,6 @@ import {
   dayKeyForDate,
   defaultStartDateId,
   getDayPlan,
-  nextRepState,
   nextTarget,
   lastSessionSets,
   pastSessions,
@@ -23,8 +22,9 @@ const DAY_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 let startDateId = null;
 let dayOverride = null; // { dateId, dayKey } when the user picks a different workout for a date
-const weightOverrides = {}; // `${dateId}|${exercise}` -> weight
+const weightOverrides = new Map();
 const pending = new Set();
+let lastSetUndo;
 
 const settingsRef = () => doc(db, 'users', state.currentUser.uid, 'settings', 'program');
 const workoutsRef = () => collection(db, 'users', state.currentUser.uid, 'workouts');
@@ -73,13 +73,17 @@ function todaysDocs(dateId, exercise) {
   );
 }
 
-function targetFor(item, dateId) {
-  const docs = todaysDocs(dateId, item.name);
+function exerciseKey(dateId, exercise) {
+  return `${state.currentUser.uid}|${dateId}|${exercise}`;
+}
+
+function targetFor(item, dateId, docs) {
   const computed = nextTarget(item, pastSessions(state.workoutsCache, item.name, dateId, dateIdOf));
-  if (docs.length) return { ...computed, weight: docs[0].weight, reps: docs[0].targetReps || computed.reps };
-  const key = `${dateId}|${item.name}`;
-  if (key in weightOverrides) return { ...computed, weight: weightOverrides[key] };
-  return computed;
+  const lastSet = docs.at(-1);
+  const recordedPlan = docs.findLast((set) => set.plannedWeight != null);
+  const savedWeight = recordedPlan?.plannedWeight ?? lastSet?.weight ?? computed.weight;
+  const weight = weightOverrides.get(exerciseKey(dateId, item.name)) ?? savedWeight;
+  return { ...computed, weight, savedWeight, reps: lastSet?.targetReps ?? computed.reps };
 }
 
 function logDate(dateId, offset) {
@@ -101,44 +105,118 @@ function startRestTimer() {
   document.querySelector(`.timer-btn[data-time="${REST_SECONDS}"]`)?.click();
 }
 
-async function withPending(key, fn) {
-  if (pending.has(key)) return;
+async function withPending(key, fn, onError = () => showToast('Error saving', true)) {
+  if (pending.has(key)) return false;
   pending.add(key);
   try {
     await fn();
+    return true;
   } catch {
-    showToast('Error saving', true);
+    onError();
+    return false;
   } finally {
     pending.delete(key);
   }
 }
 
-function onSetTap(plan, item, itemIndex, setIndex, dateId, target) {
-  const existing = todaysDocs(dateId, item.name).find((w) => w.setIndex === setIndex);
-  const next = nextRepState(existing ? existing.reps : null, target.reps);
-  withPending(`${dateId}|${item.name}|${setIndex}`, async () => {
-    if (!existing) {
-      await addDoc(workoutsRef(), {
-        exercise: item.name,
-        weight: target.weight,
-        reps: next,
-        setCount: 1,
-        timestamp: logDate(dateId, itemIndex),
-        dateStr: logDate(dateId, 0).toLocaleDateString(),
-        program: PROGRAM_ID,
-        programDay: plan.key,
-        setIndex,
-        targetSets: item.sets,
-        targetReps: target.reps,
-      });
-      if (!item.supersetFirst) startRestTimer();
-      ensureSessionName(dateId, plan.label);
-    } else if (next == null) {
-      await deleteDoc(doc(workoutsRef(), existing.id));
-    } else {
-      await updateDoc(doc(workoutsRef(), existing.id), { reps: next });
-    }
+function logSet(plan, item, itemIndex, setIndex, dateId, target, key) {
+  const existing = todaysDocs(dateId, item.name).some((w) => w.setIndex === setIndex);
+  if (existing) return;
+  const uid = state.currentUser.uid;
+  withPending(key, async () => {
+    const ref = await addDoc(workoutsRef(), {
+      exercise: item.name,
+      weight: target.weight,
+      plannedWeight: target.weight,
+      reps: target.reps,
+      setCount: 1,
+      timestamp: logDate(dateId, itemIndex),
+      dateStr: logDate(dateId, 0).toLocaleDateString(),
+      program: PROGRAM_ID,
+      programDay: plan.key,
+      setIndex,
+      targetSets: item.sets,
+      targetReps: target.reps,
+    });
+    if (state.currentUser?.uid !== uid) return;
+    if (!item.supersetFirst) startRestTimer();
+    ensureSessionName(dateId, plan.label);
+    lastSetUndo?.dismiss();
+    lastSetUndo = {
+      id: ref.id,
+      dismiss: showToast(`Set ${setIndex + 1} logged`, false, {
+        label: 'Undo',
+        run: () => {
+          const logged = state.workoutsCache.find((w) => w.id === ref.id);
+          if (state.currentUser?.uid !== uid || logged?.weight !== target.weight || logged?.reps !== target.reps) return;
+          withPending(key, async () => {
+            await deleteDoc(ref);
+            showToast('Set removed');
+          });
+        },
+      }),
+    };
   });
+}
+
+function editSet(item, set, key, chipId, savedWeight) {
+  if (pending.has(key)) return;
+  const uid = state.currentUser.uid;
+  const ref = doc(workoutsRef(), set.id);
+  const dialog = document.getElementById('plan-set-editor');
+  const form = document.getElementById('plan-set-form');
+  const weight = document.getElementById('plan-set-weight');
+  const reps = document.getElementById('plan-set-reps');
+  const save = document.getElementById('plan-set-save');
+  const remove = document.getElementById('plan-set-remove');
+  const cancel = document.getElementById('plan-set-cancel');
+  const error = document.getElementById('plan-set-editor-error');
+  const bodyweight = item.equip === 'bw';
+  document.getElementById('plan-set-editor-details').textContent = `${item.name} · Set ${set.setIndex + 1}`;
+  document.getElementById('plan-set-weight-label').textContent = bodyweight ? 'Load' : item.each ? 'Load (kg each)' : 'Load (kg)';
+  weight.type = bodyweight ? 'text' : 'number';
+  weight.readOnly = bodyweight;
+  weight.min = '0';
+  weight.step = '0.1';
+  weight.inputMode = 'decimal';
+  weight.value = set.weight;
+  reps.value = set.reps;
+  error.textContent = '';
+
+  async function writeSet(change, successMessage) {
+    if (state.currentUser?.uid !== uid) {
+      dialog.close();
+      return;
+    }
+    save.disabled = remove.disabled = cancel.disabled = true;
+    error.textContent = '';
+    const saved = await withPending(key, change, () => {
+      error.textContent = 'Could not update this set. Try again.';
+    });
+    save.disabled = remove.disabled = cancel.disabled = false;
+    if (!saved) return;
+    if (lastSetUndo?.id === set.id) lastSetUndo.dismiss();
+    dialog.close();
+    showToast(successMessage);
+  }
+
+  form.onsubmit = (event) => {
+    event.preventDefault();
+    writeSet(() => updateDoc(ref, {
+      weight: bodyweight ? set.weight : weight.valueAsNumber,
+      reps: reps.valueAsNumber,
+      // Older sets stored only the actual weight, so retain the current saved plan on first edit.
+      plannedWeight: set.plannedWeight ?? savedWeight,
+    }), 'Set updated');
+  };
+  remove.onclick = () => writeSet(() => deleteDoc(ref), 'Set removed');
+  cancel.onclick = () => dialog.close();
+  dialog.oncancel = (event) => {
+    if (pending.has(key)) event.preventDefault();
+  };
+  dialog.onclose = () => document.getElementById(chipId)?.focus();
+  dialog.showModal();
+  if (bodyweight) reps.focus();
 }
 
 function onCardioTap(plan, item, itemIndex, dateId) {
@@ -163,16 +241,8 @@ function onCardioTap(plan, item, itemIndex, dateId) {
 }
 
 function onWeightChange(item, dateId, current, direction) {
-  const next = stepWeight(item, current, direction);
-  weightOverrides[`${dateId}|${item.name}`] = next;
-  const docs = todaysDocs(dateId, item.name);
-  if (docs.length) {
-    withPending(`${dateId}|${item.name}|weight`, () =>
-      Promise.all(docs.map((w) => updateDoc(doc(workoutsRef(), w.id), { weight: next }))),
-    );
-  } else {
-    renderPlan();
-  }
+  weightOverrides.set(exerciseKey(dateId, item.name), stepWeight(item, current, direction));
+  renderPlan();
 }
 
 const REASON_TEXT = {
@@ -199,11 +269,11 @@ function setCircle(reps, targetReps, label) {
     'w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold transition active:scale-95 select-none';
   if (reps == null) {
     btn.className = `${base} bg-input border border-raised text-faint`;
-  } else if (reps >= targetReps) {
+  } else if (reps === targetReps) {
     btn.className = `${base} bg-accent text-on-accent`;
     btn.innerHTML = '<i class="fa-solid fa-check"></i>';
   } else {
-    btn.className = `${base} bg-amber-500/20 border border-amber-500/50 text-warn`;
+    btn.className = `${base} ${reps > targetReps ? 'bg-accent text-on-accent' : 'bg-amber-500/20 border border-amber-500/50 text-warn'}`;
     btn.textContent = reps;
   }
   return btn;
@@ -211,8 +281,10 @@ function setCircle(reps, targetReps, label) {
 
 function renderLiftRow(plan, item, index, liftNumber, dateId) {
   const row = el('div', 'py-4 border-b border-line-soft last:border-0');
-  const target = targetFor(item, dateId);
-  const docs = todaysDocs(dateId, item.name);
+  const docs = todaysDocs(dateId, item.name).sort((a, b) => a.setIndex - b.setIndex);
+  const target = targetFor(item, dateId, docs);
+  const sets = Array.from({ length: item.sets }, (_, index) => docs.find((set) => set.setIndex === index));
+  const allSetsLogged = sets.every(Boolean);
 
   const top = el('div', 'flex justify-between items-start gap-3');
   const info = el('div', 'min-w-0');
@@ -230,21 +302,21 @@ function renderLiftRow(plan, item, index, liftNumber, dateId) {
   top.append(info);
 
   const rightCol = el('div', 'flex flex-col items-end shrink-0 gap-1.5');
-  if (target.weight !== 'BW') {
+  if (!allSetsLogged && target.weight !== 'BW') {
     const weightBox = el('div', 'flex items-center gap-1');
     const minus = el('button', 'w-8 h-8 rounded-full bg-input text-muted hover:text-fg text-xs');
     minus.type = 'button';
     minus.innerHTML = '<i class="fa-solid fa-minus"></i>';
-    minus.setAttribute('aria-label', `Lower ${item.name} weight`);
+    minus.setAttribute('aria-label', `Lower ${item.name} next set weight`);
     minus.onclick = () => onWeightChange(item, dateId, target.weight, -1);
     const plus = el('button', 'w-8 h-8 rounded-full bg-input text-muted hover:text-fg text-xs');
     plus.type = 'button';
     plus.innerHTML = '<i class="fa-solid fa-plus"></i>';
-    plus.setAttribute('aria-label', `Raise ${item.name} weight`);
+    plus.setAttribute('aria-label', `Raise ${item.name} next set weight`);
     plus.onclick = () => onWeightChange(item, dateId, target.weight, 1);
     weightBox.append(minus, el('span', 'text-sm font-bold text-fg w-[4.5rem] text-center', formatKg(target.weight, item.each)), plus);
-    rightCol.append(weightBox);
-  } else {
+    rightCol.append(el('span', 'text-[9px] uppercase tracking-widest text-subtle', 'Next set'), weightBox);
+  } else if (!allSetsLogged) {
     rightCol.append(el('span', 'text-sm font-bold text-fg', 'BW'));
   }
 
@@ -252,12 +324,19 @@ function renderLiftRow(plan, item, index, liftNumber, dateId) {
   if (last) {
     const lastBox = el('div', 'text-right max-w-[5.5rem]');
     lastBox.append(el('div', 'text-[9px] uppercase tracking-widest text-faint font-semibold', 'Last'));
-    if (last.weight !== 'BW') {
+    const mixedLoads = last.weights.some((weight) => weight !== last.weight);
+    if (!mixedLoads && last.weight !== 'BW') {
       lastBox.append(
         el('div', 'text-[10px] text-subtle font-mono leading-tight', formatKg(last.weight, item.each)),
       );
     }
-    lastBox.append(el('div', 'text-[10px] text-muted font-mono leading-tight', last.reps.join(' · ')));
+    if (mixedLoads) {
+      last.reps.forEach((reps, i) => {
+        lastBox.append(el('div', 'text-[10px] text-muted font-mono leading-tight', `${formatKg(last.weights[i], item.each)} × ${reps}`));
+      });
+    } else {
+      lastBox.append(el('div', 'text-[10px] text-muted font-mono leading-tight', last.reps.join(' · ')));
+    }
     rightCol.append(lastBox);
   }
 
@@ -265,14 +344,25 @@ function renderLiftRow(plan, item, index, liftNumber, dateId) {
   row.append(top);
 
   const circles = el('div', 'flex gap-3 mt-3');
-  for (let s = 0; s < item.sets; s++) {
-    const d = docs.find((w) => w.setIndex === s);
-    const btn = setCircle(d ? d.reps : null, target.reps, `${item.name} set ${s + 1}`);
-    btn.onclick = () => onSetTap(plan, item, index, s, dateId, target);
+  let done = 0;
+  sets.forEach((d, s) => {
+    const label = `${item.name} set ${s + 1}`;
+    const key = `${exerciseKey(dateId, item.name)}|${s}`;
+    const btn = setCircle(d?.reps, target.reps, d
+      ? `Edit ${label}, ${formatKg(d.weight, item.each)}, ${d.reps} reps`
+      : `Log ${label}, ${formatKg(target.weight, item.each)}, ${target.reps} reps`);
+    btn.id = `plan-${plan.key}-${index}-set-${s}`;
+    if (d) {
+      done++;
+      btn.title = `${formatKg(d.weight, item.each)} × ${d.reps}`;
+      btn.onclick = () => editSet(item, d, key, btn.id, target.savedWeight);
+    } else {
+      btn.onclick = () => logSet(plan, item, index, s, dateId, target, key);
+    }
     circles.append(btn);
-  }
+  });
   row.append(circles);
-  return { row, done: docs.filter((w) => w.setIndex < item.sets).length, total: item.sets };
+  return { row, done, total: item.sets };
 }
 
 function renderCardioRow(plan, item, index, dateId) {
@@ -387,7 +477,9 @@ export function renderPlan() {
 
   const finished = total > 0 && done >= total;
   progress.append(el('span', finished ? 'text-accent' : 'text-subtle', finished ? 'Session complete' : `${done} / ${total} done`));
-  progress.append(el('span', 'text-faint normal-case tracking-normal', 'Tap = done. Tap again = fewer reps.'));
+  if (plan.items.some((item) => !item.cardio)) {
+    progress.append(el('span', 'text-faint normal-case tracking-normal', 'Tap a completed set to edit.'));
+  }
 }
 
 export function initPlan() {

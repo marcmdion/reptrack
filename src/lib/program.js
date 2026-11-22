@@ -4,7 +4,6 @@ export const PROGRAM_ID = 'ul-cardio-v1';
 export const TARGET_REPS = 10;
 export const BASE_SETS = 3;
 export const EXTRA_SET_AFTER_WEEK = 8;
-export const MIN_REPS_SHOWN = 5;
 // "Add reps first" lifts climb from TARGET_REPS to TOP_REPS before adding weight
 export const TOP_REPS = 12;
 
@@ -182,6 +181,11 @@ export function pastSessions(workouts, exercise, beforeDateId, dateIdOf) {
         targetReps: w.targetReps || TARGET_REPS,
       };
     }
+    // Progress from a load reached on every set, even when the set weights differ.
+    if (w.weight !== 'BW' && Number.isFinite(Number(w.weight))) {
+      const session = byDay[dateId];
+      session.weight = session.weight === 'BW' ? w.weight : Math.min(session.weight, w.weight);
+    }
     byDay[dateId].reps.push(Number(w.reps) || 0);
   });
   return Object.values(byDay).sort((a, b) => (a.dateId < b.dateId ? 1 : -1));
@@ -200,6 +204,7 @@ export function lastSessionSets(workouts, exercise, beforeDateId, dateIdOf, maxS
   return {
     dateId: lastDate,
     weight: sets[0].weight,
+    weights: sets.map((w) => w.weight),
     reps: sets.map((w) => Number(w.reps) || 0),
   };
 }
@@ -251,11 +256,4 @@ export function weightStep(item, currentWeight, direction = 1) {
 
 export function stepWeight(item, currentWeight, direction) {
   return bumpWeight(item, currentWeight, direction);
-}
-
-// Tapping a set circle: empty -> target -> target-1 -> ... -> 5 -> empty
-export function nextRepState(current, target = TARGET_REPS) {
-  if (current == null) return target;
-  if (current <= MIN_REPS_SHOWN) return null;
-  return Math.min(current, target) - 1;
 }

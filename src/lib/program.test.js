@@ -5,7 +5,6 @@ import {
   defaultStartDateId,
   getDayPlan,
   lastSessionSets,
-  nextRepState,
   nextTarget,
   pastSessions,
   roundDownDumbbell,
@@ -119,6 +118,14 @@ describe('add reps first', () => {
 });
 
 describe('pastSessions', () => {
+  it('progresses from the lowest load completed across a mixed-weight workout', () => {
+    const workouts = [35, 30, 35].map((weight, setIndex) => ({
+      program: PROGRAM_ID, exercise: bench.name, weight, reps: 10, setIndex,
+    }));
+    const sessions = pastSessions(workouts, bench.name, '2026-10-12', () => '2026-10-05');
+    expect(nextTarget(bench, sessions)).toMatchObject({ weight: 30.5, reason: 'up' });
+  });
+
   it('groups program sets by day and ignores today and non-program logs', () => {
     const dateIdOf = (w) => w.d;
     const w = (d, reps, extra = {}) => ({ program: PROGRAM_ID, exercise: 'Bench Press', weight: 35, reps, d, ...extra });
@@ -146,6 +153,7 @@ describe('lastSessionSets', () => {
     expect(lastSessionSets(workouts, 'Bench Press', '2026-10-12', dateIdOf)).toEqual({
       dateId: '2026-10-10',
       weight: 37.5,
+      weights: [37.5, 37.5, 37.5],
       reps: [10, 9, 8],
     });
   });
@@ -186,16 +194,5 @@ describe('dumbbell weights', () => {
     expect(roundDownDumbbell(5.4)).toBe(5);
     expect(roundDownDumbbell(14.4)).toBe(14);
     expect(roundDownDumbbell(10)).toBe(10);
-  });
-});
-
-describe('nextRepState', () => {
-  it('cycles empty -> 10 -> 9 ... -> 5 -> empty', () => {
-    expect(nextRepState(null)).toBe(10);
-    expect(nextRepState(10)).toBe(9);
-    expect(nextRepState(6)).toBe(5);
-    expect(nextRepState(5)).toBe(null);
-    expect(nextRepState(null, 12)).toBe(12);
-    expect(nextRepState(12, 12)).toBe(11);
   });
 });
