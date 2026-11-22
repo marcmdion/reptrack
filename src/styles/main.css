@@ -159,6 +159,7 @@ a {
 }
 
 .modal-bg { background-color: var(--modal-bg); backdrop-filter: blur(8px); }
+.set-editor::backdrop { background-color: var(--modal-bg); backdrop-filter: blur(8px); }
 
 input[type="date"]::-webkit-calendar-picker-indicator {
   filter: var(--date-icon-filter);

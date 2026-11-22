@@ -80,6 +80,31 @@
         </div>
     </div>
 
+    <dialog id="plan-set-editor" aria-labelledby="plan-set-editor-title" class="set-editor w-[calc(100%-2rem)] max-w-sm rounded-3xl border border-line bg-surface p-5 text-fg shadow-2xl">
+        <form id="plan-set-form">
+            <h3 id="plan-set-editor-title" class="text-lg font-bold">Edit set</h3>
+            <p id="plan-set-editor-details" class="mb-4 mt-1 text-sm text-subtle"></p>
+            <div class="grid grid-cols-2 gap-3">
+                <label class="text-sm text-muted">
+                    <span id="plan-set-weight-label">Load (kg)</span>
+                    <input id="plan-set-weight" class="mt-1 w-full rounded-xl bg-input p-3 text-base text-fg" required>
+                </label>
+                <label class="text-sm text-muted">
+                    Reps
+                    <input id="plan-set-reps" type="number" min="0" step="1" inputmode="numeric" class="mt-1 w-full rounded-xl bg-input p-3 text-base text-fg" required>
+                </label>
+            </div>
+            <p id="plan-set-editor-error" role="alert" class="mt-2 text-sm text-warn"></p>
+            <div class="mt-4 flex items-center justify-between gap-2">
+                <button id="plan-set-remove" type="button" class="min-h-11 px-1 text-sm font-semibold text-warn">Remove set</button>
+                <div class="flex gap-2">
+                    <button id="plan-set-cancel" type="button" class="min-h-11 rounded-xl bg-input px-3 text-sm font-semibold">Cancel</button>
+                    <button id="plan-set-save" type="submit" class="min-h-11 rounded-xl bg-accent px-3 text-sm font-bold text-on-accent">Save</button>
+                </div>
+            </div>
+        </form>
+    </dialog>
+
     <div id="exercise-modal" class="fixed inset-0 z-[60] hidden flex items-center justify-center modal-bg p-4 animate-fade-in">
         <div class="bg-surface w-full max-w-sm rounded-[24px] p-6 border border-line shadow-2xl relative flex flex-col max-h-[80vh]">
             <button id="close-modal-btn" class="absolute top-6 right-6 text-subtle hover:text-fg">
