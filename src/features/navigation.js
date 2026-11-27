@@ -121,7 +121,7 @@ export function initNavigation() {
     rEndsAt = Date.now() + seconds * 1000;
     restRunning = true;
 
-    armSoftBeep(rEndsAt);
+    armSoftBeep();
     scheduleRestWallClock();
     void syncRestAlarmToServiceWorker(rEndsAt);
 
