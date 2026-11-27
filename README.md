@@ -48,15 +48,13 @@ Today's Plan uses singular lift names from `src/lib/program.js` (for example **L
 
 ## Rest timer and audio (especially iOS)
 
-While a rest is counting down, RepTrack does **not** hold an audio session or play silent media. Podcasts and other apps keep playing.
+On iPhone and iPad the rest timer **never opens an audio session**. It does not create an `AudioContext`, resume one, play a silent buffer, or use an `<audio>` element, and it does not set `navigator.audioSession` to `playback` or `play-and-record`.
 
-When rest ends:
+That session is what paused podcasts and disabled Siri. WebKit registers a running audio context, or an `<audio>` element, as the Now Playing app. iOS then gives that app the side button, so holding it does not start Siri, and other audio pauses. Scheduling the end beeps at the start of the rest (or playing a silent unlock buffer) turns the session on immediately and holds it until the timer ends. Suspending the context does not reliably give Siri back.
 
-- **In the foreground:** three short beeps via Web Audio (about one second total; may briefly duck other audio).
-- **In the background:** enable **“Rest alerts when app is in background”** on the timer card so the service worker can show a **notification** at rest end. iOS Safari often suspends page timers and Web Audio in the background; notifications are the reliable alert there. Beeps usually play when you return to the app if the scheduled tones did not fire.
-- **Vibration** when the device supports `navigator.vibrate`.
+The countdown stays on screen. Vibration runs where the browser allows it. **“Rest alerts when app is in background”** posts a notification when rest ends.
 
-RepTrack intentionally does not play a multi-minute encoded track during rest (that monopolized audio and interrupted podcasts). There is no perfect way on iOS to guarantee audible beeps in the background without either holding media playback or using notifications.
+On desktop, three short beeps play when rest ends. Where the browser supports it, the page sets the audio session to **ambient** first so the beeps mix instead of taking playback, and the context is suspended while the timer counts. Android browsers that cannot opt into a mixable session play no timer sound, so they cannot take audio focus.
 
 ## Scripts
 

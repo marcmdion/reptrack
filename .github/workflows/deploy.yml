@@ -50,6 +50,8 @@ jobs:
           rm -rf docs
           cp -r dist docs
           touch docs/.nojekyll
+          # The publish step replaces docs/ with the build. Keep the lessons note.
+          git checkout HEAD -- docs/LESSONS.md 2>/dev/null || true
 
       - name: Commit and push docs/
         run: |
